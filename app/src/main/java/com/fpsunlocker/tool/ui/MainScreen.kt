@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Lock
@@ -41,6 +42,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -52,6 +54,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fpsunlocker.tool.data.FileEntry
 import com.fpsunlocker.tool.shizuku.ShizukuManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +80,8 @@ fun MainScreen(vm: MainViewModel, onRequestSafAccess: () -> Unit) {
                 item { AccessCard(s, vm, onRequestSafAccess) }
                 item { GameCard(s, vm) }
                 item { ConfigCard(s, vm) }
+                s.preview?.let { (path, text) -> item { PreviewCard(path, text, vm::closePreview) } }
+                if (s.textFiles.isNotEmpty()) item { TextFilesCard(s.textFiles, s.configPath, vm::useTextFile) }
                 item { FpsCard(s, vm) }
                 item { ActionButtons(s, vm) }
                 item { LogCard(s.log) }
@@ -176,10 +181,16 @@ private fun ConfigCard(s: UiState, vm: MainViewModel) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(onClick = vm::scan, enabled = s.packageName.isNotBlank() && !s.busy) {
-            Icon(Icons.Default.Search, null, Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Scan หาไฟล์/คีย์ FPS")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = vm::scan, enabled = s.packageName.isNotBlank() && !s.busy) {
+                Icon(Icons.Default.Search, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Scan")
+            }
+            OutlinedButton(
+                onClick = { vm.preview(s.configPath) },
+                enabled = s.configPath.isNotBlank() && !s.busy,
+            ) { Text("ดูเนื้อหาไฟล์") }
         }
 
         if (s.scanHits.isNotEmpty()) {
@@ -255,6 +266,60 @@ private fun ActionButtons(s: UiState, vm: MainViewModel) {
         ) { Text("Restore Backup") }
     }
 }
+
+@Composable
+private fun PreviewCard(path: String, text: String, onClose: () -> Unit) {
+    SectionCard("เนื้อหาไฟล์") {
+        Text(path, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            SelectionContainer {
+                Text(
+                    text,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.padding(10.dp),
+                )
+            }
+        }
+        TextButton(onClick = onClose) { Text("ปิด") }
+    }
+}
+
+@Composable
+private fun TextFilesCard(files: List<FileEntry>, selected: String, onPick: (FileEntry) -> Unit) {
+    val shown = files.take(80)
+    SectionCard("ไฟล์ที่อ่านเป็นข้อความได้ (${files.size})") {
+        Text(
+            "แตะเพื่อเลือกและเปิดดูเนื้อหา" + if (files.size > shown.size) " · แสดง ${shown.size} ไฟล์แรก" else "",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        shown.forEach { entry ->
+            Row(
+                Modifier.fillMaxWidth().clickable { onPick(entry) }.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    entry.path,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = if (entry.path == selected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(formatSize(entry.size), style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+private fun formatSize(bytes: Long): String =
+    if (bytes < 1024) "$bytes B" else "%.1f kB".format(bytes / 1024.0)
 
 @Composable
 private fun LogCard(log: List<String>) {

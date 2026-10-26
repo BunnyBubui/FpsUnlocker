@@ -41,14 +41,15 @@ class FileService : IFileService.Stub() {
         if (f.isFile) f.length() else -1L
     }
 
-    override fun listFiles(dir: String?, maxDepth: Int, limit: Int): MutableList<String> = wrap {
+    override fun listFiles(dir: String?, maxDepth: Int, limit: Int, maxSize: Long): MutableList<String> = wrap {
         val root = File(requireNotNull(dir))
-        if (!root.isDirectory) throw IllegalStateException("ไม่พบโฟลเดอร์ $dir")
+        if (!root.isDirectory) return@wrap mutableListOf<String>()
+        // กรองขนาดฝั่งนี้ เพื่อไม่ส่งรายชื่อไฟล์ resource หลายหมื่นไฟล์ผ่าน binder (จำกัด ~1 MB ต่อครั้ง)
         root.walkTopDown()
             .maxDepth(maxDepth)
-            .filter { it.isFile }
+            .filter { it.isFile && it.length() in 1..maxSize }
             .take(limit)
-            .map { it.relativeTo(root).path }
+            .map { "${it.relativeTo(root).path}\t${it.length()}" }
             .toMutableList()
     }
 

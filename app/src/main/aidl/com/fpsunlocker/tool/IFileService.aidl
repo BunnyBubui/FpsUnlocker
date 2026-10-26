@@ -11,6 +11,7 @@ interface IFileService {
     void copy(String src, String dst) = 4;
     boolean exists(String path) = 5;
     long size(String path) = 6;
-    List<String> listFiles(String dir, int maxDepth, int limit) = 7;
+    // คืนเฉพาะไฟล์ขนาด 1..maxSize ในรูป "path<TAB>size" (path นับจาก dir)
+    List<String> listFiles(String dir, int maxDepth, int limit, long maxSize) = 7;
     String exec(String command) = 8;
 }

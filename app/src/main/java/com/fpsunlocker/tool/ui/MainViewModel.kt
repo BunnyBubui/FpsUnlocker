@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fpsunlocker.tool.data.ConfigEditor
 import com.fpsunlocker.tool.data.FileAccess
+import com.fpsunlocker.tool.data.FileEntry
 import com.fpsunlocker.tool.data.SafFileAccess
 import com.fpsunlocker.tool.data.ScanHit
 import com.fpsunlocker.tool.data.ShizukuFileAccess
@@ -28,7 +29,7 @@ enum class FpsOption(val label: String, val value: String?) {
     FPS_60("60", "60"),
     FPS_90("90", "90"),
     FPS_120("120", "120"),
-    UNLOCKED("Unlocked", null), // ใช้ค่าที่ผู้ใช้กรอกเอง เพราะแต่ละเกมใช้ค่าต่างกัน (0, -1, 999 ...)
+    UNLOCKED("Max", null), // ใช้ค่าที่ผู้ใช้กรอกเอง เพราะแต่ละเกมใช้ค่าต่างกัน (0, -1, 999 ...)
 }
 
 data class UiState(
@@ -44,6 +45,8 @@ data class UiState(
     val currentValue: String? = null,
     val backupExists: Boolean = false,
     val scanHits: List<ScanHit> = emptyList(),
+    val textFiles: List<FileEntry> = emptyList(),
+    val preview: Pair<String, String>? = null, // (path, เนื้อหาที่ตัดมาแสดง)
     val busy: Boolean = false,
     val log: List<String> = emptyList(),
 ) {
@@ -125,7 +128,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // ---------- input ----------
 
     fun onPackageChange(v: String) {
-        _ui.update { it.copy(packageName = v.trim(), scanHits = emptyList()) }
+        _ui.update { it.copy(packageName = v.trim(), scanHits = emptyList(), textFiles = emptyList(), preview = null) }
         prefs.edit().putString(KEY_PKG, v.trim()).apply()
         updateSafState()
         refreshFileInfo()
@@ -179,28 +182,61 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** ไล่หาไฟล์ข้อความที่มีคีย์เกี่ยวกับ FPS ในโฟลเดอร์ของเกม */
+    /**
+     * ไล่หาไฟล์ config ในโฟลเดอร์ของเกม
+     * อ่านเฉพาะไฟล์เล็ก (ไฟล์ตั้งค่ามักเล็กมาก ส่วนไฟล์ resource ของเกมใหญ่) และไล่โฟลเดอร์ที่น่าจะมี config ก่อน
+     * ไม่กรองนามสกุล เพราะไฟล์ของเกมนี้หลายไฟล์ไม่มีนามสกุล เช่น files/netease_data
+     */
     fun scan() = withAccess("Scan") { fa ->
-        val files = fa.listFiles(maxDepth = 6, limit = 5000).filter { path ->
-            val ext = path.substringAfterLast('.', "").lowercase()
-            ext in ConfigEditor.TEXT_EXTENSIONS
+        val found = LinkedHashMap<String, FileEntry>()
+        var truncated = false
+        for (dir in SCAN_DIRS) {
+            val entries = runCatching { fa.listFiles(dir, maxDepth = 12, limit = LIST_LIMIT, maxSize = MAX_READ_SIZE) }
+                .getOrDefault(emptyList())
+            if (entries.size >= LIST_LIMIT) truncated = true
+            entries.forEach { found.putIfAbsent(it.path, it) }
         }
+        val candidates = found.values.take(MAX_READS)
+
         val hits = mutableListOf<ScanHit>()
+        val textFiles = mutableListOf<FileEntry>()
         var binary = 0
-        for (path in files) {
-            if (hits.size >= 100) break
-            val size = fa.size(path)
-            if (size <= 0 || size > 512_000) continue
-            val content = runCatching { fa.readText(path) }.getOrNull() ?: continue
+        for (entry in candidates) {
+            val content = runCatching { fa.readText(entry.path) }.getOrNull() ?: continue
             if (ConfigEditor.isProbablyBinary(content)) { binary++; continue }
-            hits += ConfigEditor.findFpsCandidates(path, content)
+            textFiles += entry
+            if (hits.size < 100) hits += ConfigEditor.findFpsCandidates(entry.path, content)
         }
-        _ui.update { it.copy(scanHits = hits) }
+        _ui.update { it.copy(scanHits = hits, textFiles = textFiles.take(300)) }
         buildString {
-            append("ตรวจ ${files.size} ไฟล์ข้อความ พบคีย์ที่น่าจะเกี่ยวกับ FPS ${hits.size} รายการ")
-            if (binary > 0) append(" (ข้าม $binary ไฟล์ที่เป็น binary/เข้ารหัส)")
+            append("ไฟล์เล็ก ${found.size}")
+            if (truncated || found.size > MAX_READS) append(" (ถึงขีดจำกัด อาจยังตรวจไม่ครบ)")
+            append(" · อ่านได้เป็นข้อความ ${textFiles.size} · binary/เข้ารหัส $binary · คีย์ FPS ${hits.size}")
         }
     }
+
+    /** เปิดดูเนื้อหาไฟล์ เพื่อให้ผู้ใช้หาค่าตั้งค่าเองได้ถ้า Scan ไม่เจอคีย์ */
+    fun preview(path: String) = withAccess("ดูไฟล์") { fa ->
+        if (path.isBlank()) throw IllegalArgumentException("ยังไม่ได้เลือกไฟล์")
+        val size = fa.size(path)
+        if (size > MAX_READ_SIZE) throw IllegalStateException("ไฟล์ใหญ่เกินไป ($size bytes)")
+        val content = fa.readText(path)
+        val text = if (ConfigEditor.isProbablyBinary(content)) {
+            "[binary หรือเข้ารหัส · $size bytes]\n" +
+                content.take(600).map { c -> if (c.code in 32..126) c else '.' }.joinToString("")
+        } else {
+            content.take(6000)
+        }
+        _ui.update { it.copy(preview = path to text) }
+        "เปิดดู $path ($size bytes)"
+    }
+
+    fun useTextFile(entry: FileEntry) {
+        onPathChange(entry.path)
+        preview(entry.path)
+    }
+
+    fun closePreview() = _ui.update { it.copy(preview = null) }
 
     fun apply() = withAccess("Apply") { fa ->
         val s = _ui.value
@@ -297,5 +333,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         const val KEY_UNLOCKED = "unlocked_value"
         const val KEY_TREE = "tree_uri"
         val GAME_HINTS = listOf("netease", "yysls", "wherewinds", "wwm")
+
+        // ลำดับโฟลเดอร์ที่ไล่ก่อน (โฟลเดอร์ใหญ่อย่าง files/Package ไว้ท้าย ผ่านรอบ "" ซึ่งคือทั้งโฟลเดอร์)
+        val SCAN_DIRS = listOf("files/LocalData", "files/Engine", "files/orbit", "files/ccmini", "files", "")
+        const val LIST_LIMIT = 2500          // ต่อหนึ่งโฟลเดอร์ (กันเกินขนาด binder)
+        const val MAX_READ_SIZE = 256_000L   // ไฟล์ config จริงมักเล็กกว่านี้มาก
+        const val MAX_READS = 3000
     }
 }

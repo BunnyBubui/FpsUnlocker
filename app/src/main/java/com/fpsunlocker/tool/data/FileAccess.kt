@@ -11,6 +11,8 @@ import java.io.FileNotFoundException
  * ทุก path เป็น path แบบ relative จากโฟลเดอร์นั้น เช่น "files/config/GameUserSettings.ini"
  * เมธอดทั้งหมดเป็น blocking ต้องเรียกจาก Dispatchers.IO
  */
+data class FileEntry(val path: String, val size: Long)
+
 interface FileAccess {
     val label: String
     fun readText(rel: String): String
@@ -18,7 +20,8 @@ interface FileAccess {
     fun copy(srcRel: String, dstRel: String)
     fun exists(rel: String): Boolean
     fun size(rel: String): Long
-    fun listFiles(maxDepth: Int, limit: Int): List<String>
+    /** รายชื่อไฟล์ขนาด 1..maxSize ใต้ [subDir] (path ที่คืนนับจากโฟลเดอร์ของเกม) */
+    fun listFiles(subDir: String, maxDepth: Int, limit: Int, maxSize: Long): List<FileEntry>
 }
 
 /** ใช้ได้ทุก Android 11+ ต้องเปิด Shizuku และอนุญาตแอปนี้ก่อน */
@@ -35,8 +38,12 @@ class ShizukuFileAccess(
     override fun copy(srcRel: String, dstRel: String) = service.copy(abs(srcRel), abs(dstRel))
     override fun exists(rel: String): Boolean = service.exists(abs(rel))
     override fun size(rel: String): Long = service.size(abs(rel))
-    override fun listFiles(maxDepth: Int, limit: Int): List<String> =
-        service.listFiles(rootDir, maxDepth, limit)
+    override fun listFiles(subDir: String, maxDepth: Int, limit: Int, maxSize: Long): List<FileEntry> {
+        val prefix = subDir.trim('/').let { if (it.isEmpty()) "" else "$it/" }
+        return service.listFiles(abs(subDir), maxDepth, limit, maxSize).map { line ->
+            FileEntry(prefix + line.substringBeforeLast('\t'), line.substringAfterLast('\t').toLongOrNull() ?: -1L)
+        }
+    }
 
     fun exec(command: String): String = service.exec(command)
 }
@@ -91,18 +98,23 @@ class SafFileAccess(
     override fun exists(rel: String) = find(rel)?.exists() == true
     override fun size(rel: String) = find(rel)?.takeIf { it.isFile }?.length() ?: -1L
 
-    override fun listFiles(maxDepth: Int, limit: Int): List<String> {
-        val out = mutableListOf<String>()
+    override fun listFiles(subDir: String, maxDepth: Int, limit: Int, maxSize: Long): List<FileEntry> {
+        val start = find(subDir)?.takeIf { it.isDirectory } ?: return emptyList()
+        val out = mutableListOf<FileEntry>()
         fun walk(dir: DocumentFile, prefix: String, depth: Int) {
             if (depth > maxDepth || out.size >= limit) return
             for (child in dir.listFiles()) {
                 if (out.size >= limit) return
                 val name = child.name ?: continue
                 val path = if (prefix.isEmpty()) name else "$prefix/$name"
-                if (child.isDirectory) walk(child, path, depth + 1) else out += path
+                if (child.isDirectory) {
+                    walk(child, path, depth + 1)
+                } else if (child.length() in 1..maxSize) {
+                    out += FileEntry(path, child.length())
+                }
             }
         }
-        walk(root, "", 1)
+        walk(start, subDir.trim('/'), 1)
         return out
     }
 }
