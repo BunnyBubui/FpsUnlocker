@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ธีมของ Activity เท่านั้น สีจริงของ UI มาจาก Compose (ui/Theme.kt) -->
+    <style name="Theme.FpsUnlocker" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+</resources>
