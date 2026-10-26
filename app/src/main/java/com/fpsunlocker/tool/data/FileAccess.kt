@@ -27,14 +27,25 @@ interface FileAccess {
     fun listDirs(rel: String): List<String>
 }
 
-/** ใช้ได้ทุก Android 11+ ต้องเปิด Shizuku และอนุญาตแอปนี้ก่อน */
+/**
+ * ใช้ได้ทุก Android 11+ ต้องเปิด Shizuku และอนุญาตแอปนี้ก่อน
+ * ถ้า Shizuku รันด้วย root จะส่ง [internalDir] (= /data/data/<package>) มาด้วย
+ * path ที่ขึ้นต้นด้วย "internal/" จะถูกส่งไปที่โฟลเดอร์นั้นแทน Android/data
+ */
 class ShizukuFileAccess(
     private val service: IFileService,
     private val rootDir: String,
+    private val internalDir: String? = null,
 ) : FileAccess {
-    override val label = "Shizuku"
+    override val label = if (internalDir != null) "Shizuku (root)" else "Shizuku"
 
-    private fun abs(rel: String) = "$rootDir/${rel.trimStart('/')}"
+    private fun abs(rel: String): String {
+        val clean = rel.trimStart('/')
+        if (internalDir != null && (clean == INTERNAL || clean.startsWith("$INTERNAL/"))) {
+            return "$internalDir/${clean.removePrefix(INTERNAL).trimStart('/')}"
+        }
+        return "$rootDir/$clean"
+    }
 
     override fun readText(rel: String): String = service.readText(abs(rel))
     override fun writeText(rel: String, content: String) = service.writeText(abs(rel), content)
@@ -48,9 +59,17 @@ class ShizukuFileAccess(
         }
     }
 
-    override fun listDirs(rel: String): List<String> = service.listDirs(abs(rel))
+    override fun listDirs(rel: String): List<String> {
+        val dirs = service.listDirs(abs(rel))
+        // ให้ Scan เห็น "internal" เป็นโฟลเดอร์หนึ่ง เมื่อมีสิทธิ์ root
+        return if (internalDir != null && rel.trim('/').isEmpty()) dirs + INTERNAL else dirs
+    }
 
     fun exec(command: String): String = service.exec(command)
+
+    companion object {
+        const val INTERNAL = "internal"
+    }
 }
 
 /**

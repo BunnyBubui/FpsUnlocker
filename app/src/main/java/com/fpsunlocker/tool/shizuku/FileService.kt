@@ -28,7 +28,11 @@ class FileService : IFileService.Stub() {
     }
 
     override fun copy(src: String?, dst: String?) = wrap {
-        File(requireNotNull(src)).copyTo(File(requireNotNull(dst)), overwrite = true)
+        // เขียนทับลงไฟล์เดิม (ไม่ลบแล้วสร้างใหม่) เพื่อคงเจ้าของไฟล์และสิทธิ์เดิมไว้
+        // สำคัญมากตอนใช้ root กับ /data/data เพราะถ้าไฟล์กลายเป็นของ root เกมจะอ่านไฟล์ตัวเองไม่ได้
+        File(requireNotNull(src)).inputStream().use { input ->
+            File(requireNotNull(dst)).outputStream().use { output -> input.copyTo(output) }
+        }
         Unit
     }
 

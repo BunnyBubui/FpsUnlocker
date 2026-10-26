@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,10 +40,11 @@ import com.fpsunlocker.tool.data.GameApp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GamesTab(s: UiState, vm: MainViewModel) {
+fun GamesTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
     val list = s.visibleGames
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -122,6 +124,7 @@ fun GamesTab(s: UiState, vm: MainViewModel) {
             GameRow(
                 game = game,
                 selected = game.packageName == s.packageName,
+                appliedValue = s.appliedValues[game.packageName],
                 loader = { vm.icon(it) },
                 onClick = { vm.selectGame(game) },
             )
@@ -133,6 +136,7 @@ fun GamesTab(s: UiState, vm: MainViewModel) {
 private fun GameRow(
     game: GameApp,
     selected: Boolean,
+    appliedValue: String?,
     loader: suspend (String) -> androidx.compose.ui.graphics.ImageBitmap?,
     onClick: () -> Unit,
 ) {
@@ -172,6 +176,7 @@ private fun GameRow(
                     game.engine?.let { Pill(it, MaterialTheme.colorScheme.primary) }
                     if (game.hasDataFolder) Pill("มีโฟลเดอร์ data", Palette.Good)
                     if (!game.installed) Pill("ถอนแอปแล้ว", Palette.Bad)
+                    appliedValue?.let { Pill("ตั้งไว้ $it", Palette.Amber) }
                 }
             }
             Icon(

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -54,7 +55,7 @@ import com.fpsunlocker.tool.data.FileEntry
 import com.fpsunlocker.tool.data.ScanHit
 
 @Composable
-fun TuneTab(s: UiState, vm: MainViewModel) {
+fun TuneTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
     if (s.packageName.isBlank()) {
         EmptyState(
             title = "ยังไม่ได้เลือกเกม",
@@ -65,12 +66,25 @@ fun TuneTab(s: UiState, vm: MainViewModel) {
         return
     }
 
+    s.pendingApply?.let { DiffDialog(it, onConfirm = vm::confirmApply, onCancel = vm::cancelApply) }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { GameHero(s, vm) }
+        if (s.reverted) {
+            item {
+                NoticeCard(
+                    color = Palette.Bad,
+                    text = "ค่า FPS ที่ตั้งไว้ถูกเกมเขียนทับแล้ว ตอนนี้เป็น ${s.appliedNow} จากที่ตั้งไว้ ${s.applied?.value} (มักเกิดหลังเกมอัปเดตหรือเปลี่ยนกราฟิกในเกม)",
+                    action = "ตั้งซ้ำ",
+                    onAction = vm::reapply,
+                )
+            }
+        }
         if (!s.hasAccess) {
             item {
                 NoticeCard(
@@ -81,6 +95,7 @@ fun TuneTab(s: UiState, vm: MainViewModel) {
                 )
             }
         }
+        item { MeterCard(s, vm) }
         item { ScanCard(s, vm) }
         s.verdict?.let { v -> item { VerdictCard(v) } }
         if (s.scanHits.isNotEmpty()) item { HitsCard(s.scanHits, vm::useScanHit) }
@@ -89,6 +104,8 @@ fun TuneTab(s: UiState, vm: MainViewModel) {
         item { ConfigCard(s, vm) }
         item { FpsCard(s, vm) }
         item { ActionButtons(s, vm) }
+        item { ForceFpsCard(s, vm) }
+        if (s.backups.isNotEmpty()) item { BackupsCard(s, vm) }
         item { LogCard(s.log) }
     }
 }
@@ -139,6 +156,7 @@ private fun GameHero(s: UiState, vm: MainViewModel) {
                     Pill(game?.engine ?: "Engine: ไม่ทราบ", MaterialTheme.colorScheme.primary)
                     s.dataSize?.let { Pill("ข้อมูล $it", Palette.Amber) }
                     game?.versionName?.let { Pill("v$it", MaterialTheme.colorScheme.onSurfaceVariant) }
+                    if (s.isRoot) Pill("root", Palette.Good)
                 }
                 Text(
                     EngineDetector.hint(game?.engine),
@@ -288,6 +306,18 @@ private fun ConfigCard(s: UiState, vm: MainViewModel) {
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
         )
+        SwitchRow(
+            title = "ปิดเกมอัตโนมัติก่อนแก้ไฟล์",
+            detail = "เกมที่เปิดอยู่จะเขียนค่าเดิมทับตอนปิด แนะนำให้เปิดไว้",
+            checked = s.autoStopGame,
+            onChange = vm::onAutoStopChange,
+        )
+        SwitchRow(
+            title = "เพิ่มคีย์ถ้าไม่มีในไฟล์",
+            detail = "ใช้เมื่อรู้ชื่อคีย์ที่เกมอ่านจริงเท่านั้น ถ้าชื่อผิด เกมจะไม่สนใจคีย์นี้",
+            checked = s.addKeyIfMissing,
+            onChange = vm::onAddKeyChange,
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("ค่าปัจจุบัน: ${s.currentValue ?: "—"}", style = MaterialTheme.typography.labelLarge)
@@ -331,11 +361,24 @@ private fun FpsCard(s: UiState, vm: MainViewModel) {
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        val maxHz = s.maxHz.toInt()
         Text(
-            "ตั้งค่าสูงกว่า refresh rate ของจอไม่ทำให้ภาพลื่นขึ้น แต่ทำให้เครื่องร้อนและแบตหมดเร็วขึ้น",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            "จอรองรับสูงสุด ${maxHz}Hz · ตอนนี้ ${s.currentHz.toInt()}Hz",
+            style = MaterialTheme.typography.labelLarge,
         )
+        val target = s.targetValue?.toIntOrNull()
+        if (target != null && target > maxHz) {
+            NoticeCard(
+                color = Palette.Warn,
+                text = "ค่าที่เลือก ($target) สูงกว่าที่จอแสดงได้ (${maxHz}Hz) ภาพจะไม่ลื่นขึ้น แต่เครื่องจะร้อนและแบตหมดเร็วขึ้น",
+            )
+        } else {
+            Text(
+                "ตั้งค่าสูงกว่า refresh rate ของจอไม่ทำให้ภาพลื่นขึ้น แต่ทำให้เครื่องร้อนและแบตหมดเร็วขึ้น",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -343,7 +386,7 @@ private fun FpsCard(s: UiState, vm: MainViewModel) {
 private fun ActionButtons(s: UiState, vm: MainViewModel) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         Button(
-            onClick = vm::apply,
+            onClick = vm::prepareApply,
             enabled = s.canEdit,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.weight(1f).height(54.dp),

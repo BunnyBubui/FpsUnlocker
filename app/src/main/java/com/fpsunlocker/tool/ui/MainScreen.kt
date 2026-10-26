@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -26,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +42,13 @@ import com.fpsunlocker.tool.shizuku.ShizukuManager
 @Composable
 fun MainScreen(vm: MainViewModel, onRequestSafAccess: () -> Unit) {
     val s by vm.ui.collectAsStateWithLifecycle()
+
+    // เก็บตำแหน่งการเลื่อนของแต่ละแท็บไว้ที่นี่ สลับแท็บไปมาแล้วจะกลับมาที่ตำแหน่งเดิม
+    val gamesListState = rememberLazyListState()
+    val tuneListState = rememberLazyListState()
+    val setupListState = rememberLazyListState()
+    // เปลี่ยนเกมแล้วให้หน้าปรับ FPS เริ่มจากด้านบน
+    LaunchedEffect(s.packageName) { runCatching { tuneListState.scrollToItem(0) } }
 
     Scaffold(
         topBar = { TopBar(s.shizukuStatus, s.shizukuBound) { vm.setTab(Tabs.SETUP) } },
@@ -69,9 +78,9 @@ fun MainScreen(vm: MainViewModel, onRequestSafAccess: () -> Unit) {
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (s.busy || s.gamesLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
             when (s.tab) {
-                Tabs.GAMES -> GamesTab(s, vm)
-                Tabs.TUNE -> TuneTab(s, vm)
-                else -> SetupTab(s, vm, onRequestSafAccess)
+                Tabs.GAMES -> GamesTab(s, vm, gamesListState)
+                Tabs.TUNE -> TuneTab(s, vm, tuneListState)
+                else -> SetupTab(s, vm, onRequestSafAccess, setupListState)
             }
         }
     }

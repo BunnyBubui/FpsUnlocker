@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -128,6 +129,15 @@ private val TROUBLES = listOf(
         ),
     ),
     Trouble(
+        "Scan ไม่เจอไฟล์ตั้งค่า หรือเจอแต่ไฟล์ที่ถูกเข้ารหัส",
+        null,
+        listOf(
+            "เกมส่วนใหญ่ เช่นเกม Unity เก็บค่าตั้งค่าไว้ใน /data/data/<package> ไม่ใช่ Android/data และ Shizuku แบบ Wireless debugging (สิทธิ์ adb) เข้าโฟลเดอร์นี้ไม่ได้",
+            "ถ้าเครื่อง root แล้ว (Magisk / KernelSU) ให้เปิด Shizuku แบบ \"เริ่มต้นด้วย root\" แอปจะสแกน /data/data ให้ด้วย โดยขึ้นเป็นโฟลเดอร์ชื่อ internal และการ์ดเกมจะมีป้าย root",
+            "ถ้าไฟล์ถูกเข้ารหัส แอปจะไม่พยายามถอดรหัส ให้ใช้ส่วน \"บังคับ FPS ระดับระบบ\" และใช้ตัววัด FPS ตรวจผลแทน",
+        ),
+    ),
+    Trouble(
         "แอปนี้ขึ้นว่า Shizuku ปิดอยู่ ทั้งที่เปิดแล้ว",
         null,
         listOf(
@@ -139,7 +149,7 @@ private val TROUBLES = listOf(
 )
 
 @Composable
-fun SetupTab(s: UiState, vm: MainViewModel, onRequestSafAccess: () -> Unit) {
+fun SetupTab(s: UiState, vm: MainViewModel, onRequestSafAccess: () -> Unit, listState: LazyListState) {
     val context = LocalContext.current
     val rom = remember { detectRom() }
     val shizukuInstalled = remember(s.shizukuStatus) {
@@ -148,6 +158,7 @@ fun SetupTab(s: UiState, vm: MainViewModel, onRequestSafAccess: () -> Unit) {
     val troubles = remember(rom) { TROUBLES.filter { it.rom == null || it.rom == rom } }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),

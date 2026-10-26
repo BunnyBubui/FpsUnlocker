@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        vm.refreshShizuku() // ผู้ใช้อาจเพิ่งไปเปิด Shizuku มา
+        vm.onResume() // ผู้ใช้อาจเพิ่งไปเปิด Shizuku / ให้สิทธิ์แสดงทับแอป / เล่นเกมมา
     }
 
     private fun requestSafAccess() {

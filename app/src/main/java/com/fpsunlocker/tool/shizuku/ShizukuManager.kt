@@ -33,6 +33,10 @@ class ShizukuManager {
     private val _service = MutableStateFlow<IFileService?>(null)
     val service: StateFlow<IFileService?> = _service.asStateFlow()
 
+    private val _isRoot = MutableStateFlow(false)
+    /** Shizuku ที่เริ่มด้วย root (uid 0) จะเข้า /data/data ของเกมได้ */
+    val isRoot: StateFlow<Boolean> = _isRoot.asStateFlow()
+
     private var binding = false
 
     private val userServiceArgs = Shizuku.UserServiceArgs(
@@ -91,6 +95,7 @@ class ShizukuManager {
             else -> Status.READY
         }
         _status.value = newStatus
+        _isRoot.value = newStatus == Status.READY && runCatching { Shizuku.getUid() == 0 }.getOrDefault(false)
         if (newStatus == Status.READY && _service.value == null) bindService()
     }
 
