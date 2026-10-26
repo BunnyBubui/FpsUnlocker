@@ -49,7 +49,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.fpsunlocker.tool.R
 import com.fpsunlocker.tool.data.EngineDetector
 import com.fpsunlocker.tool.data.FileEntry
 import com.fpsunlocker.tool.data.ScanHit
@@ -58,9 +60,9 @@ import com.fpsunlocker.tool.data.ScanHit
 fun TuneTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
     if (s.packageName.isBlank()) {
         EmptyState(
-            title = "ยังไม่ได้เลือกเกม",
-            text = "ไปที่แท็บ \"เกม\" แล้วแตะเกมที่ต้องการปรับ FPS",
-            action = "เลือกเกม",
+            title = stringResource(R.string.tune_empty_title),
+            text = stringResource(R.string.tune_empty_text),
+            action = stringResource(R.string.tune_empty_action),
             onAction = { vm.setTab(Tabs.GAMES) },
         )
         return
@@ -79,8 +81,8 @@ fun TuneTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
             item {
                 NoticeCard(
                     color = Palette.Bad,
-                    text = "ค่า FPS ที่ตั้งไว้ถูกเกมเขียนทับแล้ว ตอนนี้เป็น ${s.appliedNow} จากที่ตั้งไว้ ${s.applied?.value} (มักเกิดหลังเกมอัปเดตหรือเปลี่ยนกราฟิกในเกม)",
-                    action = "ตั้งซ้ำ",
+                    text = stringResource(R.string.tune_reverted, s.appliedNow.orEmpty(), s.applied?.value.orEmpty()),
+                    action = stringResource(R.string.action_reapply),
                     onAction = vm::reapply,
                 )
             }
@@ -89,8 +91,8 @@ fun TuneTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
             item {
                 NoticeCard(
                     color = Palette.Warn,
-                    text = "ยังเข้าถึงโฟลเดอร์ของเกมไม่ได้ ต้องเชื่อม Shizuku ก่อน",
-                    action = "วิธีเชื่อม",
+                    text = stringResource(R.string.tune_no_access),
+                    action = stringResource(R.string.action_how_to_connect),
                     onAction = { vm.setTab(Tabs.SETUP) },
                 )
             }
@@ -140,7 +142,7 @@ private fun GameHero(s: UiState, vm: MainViewModel) {
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            game?.publisher ?: "ไม่ทราบค่าย",
+                            game?.publisher ?: stringResource(R.string.hero_unknown_publisher),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.secondary,
                         )
@@ -153,13 +155,13 @@ private fun GameHero(s: UiState, vm: MainViewModel) {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Pill(game?.engine ?: "Engine: ไม่ทราบ", MaterialTheme.colorScheme.primary)
-                    s.dataSize?.let { Pill("ข้อมูล $it", Palette.Amber) }
+                    Pill(game?.engine ?: stringResource(R.string.hero_engine_unknown), MaterialTheme.colorScheme.primary)
+                    s.dataSize?.let { Pill(stringResource(R.string.hero_data_size, it), Palette.Amber) }
                     game?.versionName?.let { Pill("v$it", MaterialTheme.colorScheme.onSurfaceVariant) }
                     if (s.isRoot) Pill("root", Palette.Good)
                 }
                 Text(
-                    EngineDetector.hint(game?.engine),
+                    stringResource(EngineDetector.hint(game?.engine)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -173,12 +175,12 @@ private fun GameHero(s: UiState, vm: MainViewModel) {
 @Composable
 private fun ScanCard(s: UiState, vm: MainViewModel) {
     SectionCard(
-        "สแกนไฟล์ตั้งค่า",
+        stringResource(R.string.scan_title),
         icon = Icons.Default.Search,
-        subtitle = "ปิดเกมก่อนสแกนและก่อนแก้ไฟล์ทุกครั้ง",
+        subtitle = stringResource(R.string.scan_subtitle),
     ) {
         Text(
-            "แอปจะไล่ทุกโฟลเดอร์ใน Android/data/${s.packageName} อ่านไฟล์ขนาดเล็ก แล้วหาคีย์ที่ชื่อเกี่ยวกับ FPS เช่น fps, FrameRate, FrameRateLimit",
+            stringResource(R.string.scan_desc, s.packageName),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -190,7 +192,7 @@ private fun ScanCard(s: UiState, vm: MainViewModel) {
         ) {
             Icon(Icons.Default.Search, null, Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(if (s.busy) "กำลังทำงาน…" else "Scan หาไฟล์และคีย์ FPS")
+            Text(if (s.busy) stringResource(R.string.scan_working) else stringResource(R.string.scan_button))
         }
     }
 }
@@ -213,7 +215,7 @@ private fun VerdictCard(v: Verdict) {
 
 @Composable
 private fun HitsCard(hits: List<ScanHit>, onPick: (ScanHit) -> Unit) {
-    SectionCard("คีย์ที่น่าจะเป็น FPS (${hits.size})", icon = Icons.Default.Star, subtitle = "แตะเพื่อเลือกไฟล์และคีย์นั้น") {
+    SectionCard(stringResource(R.string.hits_title, hits.size), icon = Icons.Default.Star, subtitle = stringResource(R.string.hits_subtitle)) {
         hits.forEach { hit ->
             Surface(
                 shape = RoundedCornerShape(12.dp),
@@ -238,7 +240,7 @@ private fun HitsCard(hits: List<ScanHit>, onPick: (ScanHit) -> Unit) {
 
 @Composable
 private fun PreviewCard(path: String, text: String, onClose: () -> Unit) {
-    SectionCard("เนื้อหาไฟล์", subtitle = path) {
+    SectionCard(stringResource(R.string.preview_title), subtitle = path) {
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -253,7 +255,7 @@ private fun PreviewCard(path: String, text: String, onClose: () -> Unit) {
                 )
             }
         }
-        TextButton(onClick = onClose) { Text("ปิด") }
+        TextButton(onClick = onClose) { Text(stringResource(R.string.action_close)) }
     }
 }
 
@@ -261,8 +263,8 @@ private fun PreviewCard(path: String, text: String, onClose: () -> Unit) {
 private fun TextFilesCard(files: List<FileEntry>, selected: String, onPick: (FileEntry) -> Unit) {
     val shown = files.take(80)
     SectionCard(
-        "ไฟล์ที่อ่านเป็นข้อความได้ (${files.size})",
-        subtitle = "แตะเพื่อเลือกและเปิดดู" + if (files.size > shown.size) " · แสดง ${shown.size} ไฟล์แรก" else "",
+        stringResource(R.string.textfiles_title, files.size),
+        subtitle = if (files.size > shown.size) stringResource(R.string.textfiles_subtitle_more, shown.size) else stringResource(R.string.textfiles_subtitle),
     ) {
         shown.forEach { entry ->
             Row(
@@ -289,11 +291,11 @@ private fun TextFilesCard(files: List<FileEntry>, selected: String, onPick: (Fil
 
 @Composable
 private fun ConfigCard(s: UiState, vm: MainViewModel) {
-    SectionCard("ไฟล์และคีย์ที่จะแก้", icon = Icons.Default.Edit, subtitle = "เลือกจากผล Scan หรือพิมพ์เอง") {
+    SectionCard(stringResource(R.string.config_title), icon = Icons.Default.Edit, subtitle = stringResource(R.string.config_subtitle)) {
         OutlinedTextField(
             value = s.configPath,
             onValueChange = vm::onPathChange,
-            label = { Text("Path ของไฟล์ (นับจาก Android/data/<package>/)") },
+            label = { Text(stringResource(R.string.config_path_label)) },
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -301,28 +303,28 @@ private fun ConfigCard(s: UiState, vm: MainViewModel) {
         OutlinedTextField(
             value = s.fpsKey,
             onValueChange = vm::onKeyChange,
-            label = { Text("ชื่อคีย์ FPS ในไฟล์") },
+            label = { Text(stringResource(R.string.config_key_label)) },
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
         )
         SwitchRow(
-            title = "ปิดเกมอัตโนมัติก่อนแก้ไฟล์",
-            detail = "เกมที่เปิดอยู่จะเขียนค่าเดิมทับตอนปิด แนะนำให้เปิดไว้",
+            title = stringResource(R.string.switch_autostop_title),
+            detail = stringResource(R.string.switch_autostop_detail),
             checked = s.autoStopGame,
             onChange = vm::onAutoStopChange,
         )
         SwitchRow(
-            title = "เพิ่มคีย์ถ้าไม่มีในไฟล์",
-            detail = "ใช้เมื่อรู้ชื่อคีย์ที่เกมอ่านจริงเท่านั้น ถ้าชื่อผิด เกมจะไม่สนใจคีย์นี้",
+            title = stringResource(R.string.switch_addkey_title),
+            detail = stringResource(R.string.switch_addkey_detail),
             checked = s.addKeyIfMissing,
             onChange = vm::onAddKeyChange,
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("ค่าปัจจุบัน: ${s.currentValue ?: "—"}", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.config_current, s.currentValue ?: "—"), style = MaterialTheme.typography.labelLarge)
                 Text(
-                    "Backup: ${if (s.backupExists) "มีแล้ว" else "ยังไม่มี"}",
+                    stringResource(if (s.backupExists) R.string.config_backup_yes else R.string.config_backup_no),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -330,7 +332,7 @@ private fun ConfigCard(s: UiState, vm: MainViewModel) {
             OutlinedButton(
                 onClick = { vm.preview(s.configPath) },
                 enabled = s.configPath.isNotBlank() && s.hasAccess && !s.busy,
-            ) { Text("ดูเนื้อหาไฟล์") }
+            ) { Text(stringResource(R.string.action_view_file)) }
         }
     }
 }
@@ -338,7 +340,7 @@ private fun ConfigCard(s: UiState, vm: MainViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FpsCard(s: UiState, vm: MainViewModel) {
-    SectionCard("เป้าหมาย FPS") {
+    SectionCard(stringResource(R.string.fps_title)) {
         val options = FpsOption.entries
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { index, option ->
@@ -353,8 +355,8 @@ private fun FpsCard(s: UiState, vm: MainViewModel) {
             OutlinedTextField(
                 value = s.unlockedValue,
                 onValueChange = vm::onUnlockedValueChange,
-                label = { Text("ค่าที่จะเขียนเมื่อเลือก Max") },
-                supportingText = { Text("แต่ละเกมต่างกัน บางเกมใช้ 0 หรือ -1 แทน \"ไม่จำกัด\"") },
+                label = { Text(stringResource(R.string.fps_max_label)) },
+                supportingText = { Text(stringResource(R.string.fps_max_help)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
@@ -363,18 +365,18 @@ private fun FpsCard(s: UiState, vm: MainViewModel) {
         }
         val maxHz = s.maxHz.toInt()
         Text(
-            "จอรองรับสูงสุด ${maxHz}Hz · ตอนนี้ ${s.currentHz.toInt()}Hz",
+            stringResource(R.string.fps_display_info, maxHz, s.currentHz.toInt()),
             style = MaterialTheme.typography.labelLarge,
         )
         val target = s.targetValue?.toIntOrNull()
         if (target != null && target > maxHz) {
             NoticeCard(
                 color = Palette.Warn,
-                text = "ค่าที่เลือก ($target) สูงกว่าที่จอแสดงได้ (${maxHz}Hz) ภาพจะไม่ลื่นขึ้น แต่เครื่องจะร้อนและแบตหมดเร็วขึ้น",
+                text = stringResource(R.string.fps_over_display, target, maxHz),
             )
         } else {
             Text(
-                "ตั้งค่าสูงกว่า refresh rate ของจอไม่ทำให้ภาพลื่นขึ้น แต่ทำให้เครื่องร้อนและแบตหมดเร็วขึ้น",
+                stringResource(R.string.fps_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -390,21 +392,21 @@ private fun ActionButtons(s: UiState, vm: MainViewModel) {
             enabled = s.canEdit,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.weight(1f).height(54.dp),
-        ) { Text("Apply", fontWeight = FontWeight.Bold) }
+        ) { Text(stringResource(R.string.action_apply), fontWeight = FontWeight.Bold) }
         OutlinedButton(
             onClick = vm::restore,
             enabled = s.canEdit && s.backupExists,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.weight(1f).height(54.dp),
-        ) { Text("Restore Backup") }
+        ) { Text(stringResource(R.string.action_restore_backup)) }
     }
 }
 
 @Composable
 private fun LogCard(log: List<String>) {
-    SectionCard("Log") {
+    SectionCard(stringResource(R.string.log_title)) {
         if (log.isEmpty()) {
-            Text("ยังไม่มีรายการ", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.log_empty), style = MaterialTheme.typography.bodySmall)
         }
         log.forEach {
             Text(it, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)

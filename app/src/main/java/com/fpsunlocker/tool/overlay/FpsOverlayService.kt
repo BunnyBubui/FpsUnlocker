@@ -112,7 +112,7 @@ class FpsOverlayService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "ตัววัด FPS", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(CHANNEL_ID, getString(R.string.overlay_channel), NotificationManager.IMPORTANCE_LOW)
             )
         }
         val stopIntent = PendingIntent.getService(
@@ -122,10 +122,10 @@ class FpsOverlayService : Service() {
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_fps)
-            .setContentTitle("ตัววัด FPS กำลังทำงาน")
-            .setContentText("ลากตัวเลขเพื่อย้าย · กดค้างที่ตัวเลขเพื่อปิด")
+            .setContentTitle(getString(R.string.overlay_notif_title))
+            .setContentText(getString(R.string.overlay_notif_text))
             .setOngoing(true)
-            .addAction(0, "ปิด", stopIntent)
+            .addAction(0, getString(R.string.action_close), stopIntent)
             .build()
         val type = if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
@@ -211,7 +211,7 @@ class FpsOverlayService : Service() {
                 val service = (application as App).shizuku.service.value
                 if (service == null) {
                     meter = null
-                    view?.text = "FPS —\nShizuku ไม่ได้เชื่อม"
+                    view?.text = getString(R.string.overlay_no_shizuku)
                 } else {
                     val m = meter ?: FpsMeter(service, packageName).also { meter = it }
                     val fps = withContext(Dispatchers.IO) { m.sample() }
@@ -221,12 +221,18 @@ class FpsOverlayService : Service() {
                         count++
                         if (fps < min) min = fps
                     }
-                    val line2 = if (count > 0) {
-                        "เฉลี่ย ${(sum / count).roundToInt()} · ต่ำสุด ${min.roundToInt()}"
-                    } else {
-                        "จอ ${maxHz}Hz"
+                    val method = when (m.measuresGame) {
+                        true -> " (" + getString(R.string.method_game) + ")"
+                        false -> " (" + getString(R.string.method_screen) + ")"
+                        null -> ""
                     }
-                    view?.text = "$line1  (${m.method})\n$line2 · จอ ${maxHz}Hz"
+                    val display = getString(R.string.overlay_display, maxHz)
+                    val line2 = if (count > 0) {
+                        getString(R.string.overlay_stats, (sum / count).roundToInt(), min.roundToInt()) + " · " + display
+                    } else {
+                        display
+                    }
+                    view?.text = "$line1$method\n$line2"
                     view?.setTextColor(
                         when {
                             fps == null -> Color.WHITE

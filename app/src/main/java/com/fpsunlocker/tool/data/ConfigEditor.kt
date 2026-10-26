@@ -1,11 +1,12 @@
 package com.fpsunlocker.tool.data
 
+import com.fpsunlocker.tool.R
+
 enum class ConfigFormat { INI, JSON, XML }
 
 data class ScanHit(val path: String, val key: String, val line: String)
 
-class KeyNotFoundException(key: String) :
-    Exception("ไม่พบคีย์ \"$key\" ในไฟล์ (ตรวจตัวพิมพ์เล็ก/ใหญ่ หรือกด Scan เพื่อดูคีย์ที่มีจริง)")
+class KeyNotFoundException(key: String) : LocalizedException(R.string.err_key_not_found, key)
 
 /**
  * อ่าน/แก้ค่าในไฟล์ config แบบแทนที่เฉพาะค่า (regex) ไม่ parse แล้วเขียนใหม่ทั้งไฟล์
@@ -91,14 +92,14 @@ object ConfigEditor {
         ConfigFormat.INI -> content.trimEnd('\n', '\r') + "\n$key=$value\n"
         ConfigFormat.JSON -> {
             val idx = content.lastIndexOf('}')
-            if (idx < 0) throw IllegalStateException("ไม่พบ { } ในไฟล์ JSON เพิ่มคีย์ไม่ได้")
+            if (idx < 0) throw LocalizedException(R.string.err_json_no_braces)
             val before = content.substring(0, idx).trimEnd()
             val sep = if (before.endsWith("{")) "" else ","
             before + sep + "\n  \"$key\": $value\n" + content.substring(idx)
         }
         ConfigFormat.XML -> {
             val idx = content.lastIndexOf("</map>")
-            if (idx < 0) throw IllegalStateException("ไม่ใช่ไฟล์ SharedPreferences (ไม่มี </map>) เพิ่มคีย์ไม่ได้")
+            if (idx < 0) throw LocalizedException(R.string.err_xml_no_map)
             content.substring(0, idx) + "    <int name=\"$key\" value=\"$value\" />\n" + content.substring(idx)
         }
     }

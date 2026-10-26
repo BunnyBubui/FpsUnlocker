@@ -47,20 +47,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.annotation.StringRes
+import com.fpsunlocker.tool.R
 import com.fpsunlocker.tool.shizuku.ShizukuManager
 
 private const val SHIZUKU_PKG = "moe.shizuku.privileged.api"
 
-/** กลุ่มของ ROM ที่มีวิธีแก้ปัญหาต่างกัน */
-enum class Rom(val label: String) {
+/** กลุ่มของ ROM ที่มีวิธีแก้ปัญหาต่างกัน (ชื่อยี่ห้อไม่ต้องแปล ยกเว้น "ยี่ห้ออื่น") */
+enum class Rom(val label: String?) {
     COLOROS("OPPO / OnePlus / realme (ColorOS)"),
     XIAOMI("Xiaomi / Redmi / POCO (HyperOS / MIUI)"),
     SAMSUNG("Samsung (One UI)"),
     MEIZU("Meizu (Flyme)"),
-    OTHER("ยี่ห้ออื่น"),
+    OTHER(null),
 }
+
+@Composable
+private fun Rom.displayName(): String = label ?: stringResource(R.string.rom_other)
 
 fun detectRom(): Rom {
     val names = listOf(Build.MANUFACTURER, Build.BRAND).map { it.lowercase() }
@@ -73,79 +79,23 @@ fun detectRom(): Rom {
     }
 }
 
-private data class Trouble(val title: String, val rom: Rom?, val steps: List<String>)
+private data class Trouble(@StringRes val title: Int, val rom: Rom?, val steps: List<Int>)
 
 private val TROUBLES = listOf(
     Trouble(
-        "Shizuku ขึ้นว่า \"การอนุญาตของ adb นั้นจำกัด\"",
-        Rom.COLOROS,
-        listOf(
-            "ColorOS 16 ขึ้นไป: เข้าตัวเลือกสำหรับนักพัฒนา แล้วเปิดสวิตช์ \"Disable system optimization\" (ปิดการเพิ่มประสิทธิภาพระบบ) กดยืนยันเมื่อระบบเตือน",
-            "ถ้าหาไม่เจอ ให้เปลี่ยนภาษาเครื่องเป็น English ชั่วคราวที่ ตั้งค่า > ระบบ > ภาษา เพราะบางภาษาซ่อนตัวเลือกนี้ไว้ เปิดสวิตช์เสร็จแล้วค่อยเปลี่ยนภาษากลับ",
-            "ColorOS รุ่นเก่ากว่า 16: ใช้ตัวเลือก \"Disable permission monitoring\" แทน",
-            "เสร็จแล้วเข้า Shizuku กด \"หยุด\" แล้วกด \"เริ่ม\" ใหม่ ถ้ายังไม่ได้ ให้รีสตาร์ทเครื่องหนึ่งครั้งแล้วเริ่ม Shizuku อีกครั้ง",
-        ),
+        R.string.trouble_adb_title, Rom.COLOROS,
+        listOf(R.string.trouble_coloros_1, R.string.trouble_coloros_2, R.string.trouble_coloros_3, R.string.trouble_restart_shizuku),
     ),
     Trouble(
-        "Shizuku ขึ้นว่า \"การอนุญาตของ adb นั้นจำกัด\"",
-        Rom.XIAOMI,
-        listOf(
-            "เข้าตัวเลือกสำหรับนักพัฒนา แล้วเปิด \"USB debugging (Security settings)\" หรือ \"การแก้ไขข้อบกพร่อง USB (การตั้งค่าความปลอดภัย)\" ซึ่งเป็นคนละตัวกับสวิตช์ USB debugging ปกติ",
-            "Xiaomi อาจบังคับให้ใส่ซิมการ์ดและล็อกอิน Mi Account ก่อนจึงจะเปิดสวิตช์นี้ได้",
-            "เสร็จแล้วเข้า Shizuku กด \"หยุด\" แล้วกด \"เริ่ม\" ใหม่",
-        ),
+        R.string.trouble_adb_title, Rom.XIAOMI,
+        listOf(R.string.trouble_xiaomi_1, R.string.trouble_xiaomi_2, R.string.trouble_restart_shizuku),
     ),
-    Trouble(
-        "Shizuku ขึ้นว่า \"การอนุญาตของ adb นั้นจำกัด\"",
-        Rom.MEIZU,
-        listOf(
-            "เข้าตัวเลือกสำหรับนักพัฒนา แล้วปิด \"Flyme payment protection\"",
-            "เสร็จแล้วเข้า Shizuku กด \"หยุด\" แล้วกด \"เริ่ม\" ใหม่",
-        ),
-    ),
-    Trouble(
-        "เริ่ม Shizuku ไม่ได้ หรือเชื่อมต่อ adb ไม่ได้",
-        Rom.SAMSUNG,
-        listOf(
-            "ถ้าเปิด \"ตัวบล็อกอัตโนมัติ\" (Auto Blocker) ไว้ ตัวนี้อาจบล็อกการใช้ adb ให้ปิดชั่วคราวที่ ตั้งค่า > ความปลอดภัยและความเป็นส่วนตัว > ตัวบล็อกอัตโนมัติ",
-            "จากนั้นจับคู่และเริ่ม Shizuku ใหม่ตามขั้นตอนด้านบน",
-        ),
-    ),
-    Trouble(
-        "ช่องป้อนรหัสจับคู่ในการแจ้งเตือนไม่ขึ้น",
-        null,
-        listOf(
-            "อนุญาตการแจ้งเตือนของ Shizuku ที่ ตั้งค่า > แอป > Shizuku > การแจ้งเตือน",
-            "ถ้ายังไม่ขึ้น ใช้โหมดแยกหน้าจอ: เปิด Shizuku ครึ่งจอ และหน้า \"การแก้ไขข้อบกพร่องแบบไร้สาย\" อีกครึ่งจอ",
-            "รหัสจับคู่หมดอายุเร็ว ถ้าพิมพ์แล้วไม่สำเร็จ ให้ปิดหน้ารหัสแล้วขอรหัสใหม่",
-        ),
-    ),
-    Trouble(
-        "Shizuku หยุดทำงานหลังรีสตาร์ทเครื่องหรือเปลี่ยน Wi-Fi",
-        null,
-        listOf(
-            "เป็นเรื่องปกติของการเริ่มผ่าน Wireless debugging เพราะระบบปิดการดีบักแบบไร้สายเองเมื่อรีสตาร์ทหรือ Wi-Fi หลุด",
-            "เชื่อม Wi-Fi แล้วเปิด \"การแก้ไขข้อบกพร่องแบบไร้สาย\" ใหม่ จากนั้นเข้า Shizuku กด \"เริ่ม\" ไม่ต้องจับคู่ใหม่",
-        ),
-    ),
-    Trouble(
-        "Scan ไม่เจอไฟล์ตั้งค่า หรือเจอแต่ไฟล์ที่ถูกเข้ารหัส",
-        null,
-        listOf(
-            "เกมส่วนใหญ่ เช่นเกม Unity เก็บค่าตั้งค่าไว้ใน /data/data/<package> ไม่ใช่ Android/data และ Shizuku แบบ Wireless debugging (สิทธิ์ adb) เข้าโฟลเดอร์นี้ไม่ได้",
-            "ถ้าเครื่อง root แล้ว (Magisk / KernelSU) ให้เปิด Shizuku แบบ \"เริ่มต้นด้วย root\" แอปจะสแกน /data/data ให้ด้วย โดยขึ้นเป็นโฟลเดอร์ชื่อ internal และการ์ดเกมจะมีป้าย root",
-            "ถ้าไฟล์ถูกเข้ารหัส แอปจะไม่พยายามถอดรหัส ให้ใช้ส่วน \"บังคับ FPS ระดับระบบ\" และใช้ตัววัด FPS ตรวจผลแทน",
-        ),
-    ),
-    Trouble(
-        "แอปนี้ขึ้นว่า Shizuku ปิดอยู่ ทั้งที่เปิดแล้ว",
-        null,
-        listOf(
-            "ดูหน้าแรกของ Shizuku ว่าขึ้นว่า \"กำลังทำงาน\" จริงหรือไม่",
-            "กด \"ตรวจอีกครั้ง\" ในแอปนี้ หรือปัดปิดแอปนี้แล้วเปิดใหม่",
-            "ถ้าเคยกด \"ปฏิเสธ\" ไว้ ให้เข้า Shizuku > แอปที่ได้รับอนุญาต แล้วเปิดสวิตช์ของ FPS Unlocker",
-        ),
-    ),
+    Trouble(R.string.trouble_adb_title, Rom.MEIZU, listOf(R.string.trouble_meizu_1, R.string.trouble_restart_shizuku)),
+    Trouble(R.string.trouble_samsung_title, Rom.SAMSUNG, listOf(R.string.trouble_samsung_1, R.string.trouble_samsung_2)),
+    Trouble(R.string.trouble_pair_title, null, listOf(R.string.trouble_pair_1, R.string.trouble_pair_2, R.string.trouble_pair_3)),
+    Trouble(R.string.trouble_reboot_title, null, listOf(R.string.trouble_reboot_1, R.string.trouble_reboot_2)),
+    Trouble(R.string.trouble_scan_title, null, listOf(R.string.trouble_scan_1, R.string.trouble_scan_2, R.string.trouble_scan_3)),
+    Trouble(R.string.trouble_off_title, null, listOf(R.string.trouble_off_1, R.string.trouble_off_2, R.string.trouble_off_3)),
 )
 
 @Composable
@@ -168,7 +118,7 @@ fun SetupTab(s: UiState, vm: MainViewModel, onRequestSafAccess: () -> Unit, list
         item { GuideCard(s, rom, shizukuInstalled, vm) }
         item {
             Text(
-                "แก้ปัญหาที่พบบ่อย",
+                stringResource(R.string.troubles_header),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 8.dp, start = 4.dp),
@@ -188,11 +138,11 @@ fun SetupTab(s: UiState, vm: MainViewModel, onRequestSafAccess: () -> Unit, list
 private fun StatusCard(s: UiState, vm: MainViewModel) {
     val context = LocalContext.current
     val (color, title, detail) = when {
-        s.shizukuBound -> Triple(Palette.Good, "พร้อมใช้งาน", "เชื่อม Shizuku และได้สิทธิ์แล้ว แอปอ่านและแก้ไฟล์ใน Android/data ได้")
-        s.shizukuStatus == ShizukuManager.Status.READY -> Triple(Palette.Warn, "กำลังเริ่มตัวช่วยอ่านไฟล์…", "รอสักครู่ ถ้าค้างนาน ให้กดตรวจอีกครั้ง")
-        s.shizukuStatus == ShizukuManager.Status.NO_PERMISSION -> Triple(Palette.Warn, "Shizuku ทำงานอยู่ แต่ยังไม่อนุญาตแอปนี้", "กดปุ่ม \"อนุญาต Shizuku\" แล้วเลือกอนุญาต")
-        s.shizukuStatus == ShizukuManager.Status.UNSUPPORTED -> Triple(Palette.Bad, "Shizuku เวอร์ชันเก่าเกินไป", "อัปเดต Shizuku เป็นเวอร์ชันล่าสุดจาก Play Store")
-        else -> Triple(Palette.Bad, "Shizuku ยังไม่ทำงาน", "ทำตามคู่มือด้านล่างทีละขั้น ใช้เวลาประมาณ 5 นาที และทำครั้งแรกครั้งเดียว")
+        s.shizukuBound -> Triple(Palette.Good, R.string.setup_ready_title, R.string.setup_ready_detail)
+        s.shizukuStatus == ShizukuManager.Status.READY -> Triple(Palette.Warn, R.string.setup_starting_title, R.string.setup_starting_detail)
+        s.shizukuStatus == ShizukuManager.Status.NO_PERMISSION -> Triple(Palette.Warn, R.string.setup_noperm_title, R.string.setup_noperm_detail)
+        s.shizukuStatus == ShizukuManager.Status.UNSUPPORTED -> Triple(Palette.Bad, R.string.setup_old_title, R.string.setup_old_detail)
+        else -> Triple(Palette.Bad, R.string.setup_off_title, R.string.setup_off_detail)
     }
     Surface(
         shape = RoundedCornerShape(22.dp),
@@ -204,19 +154,23 @@ private fun StatusCard(s: UiState, vm: MainViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(if (s.shizukuBound) Icons.Default.Done else Icons.Default.Lock, null, tint = color)
                 Spacer(Modifier.width(10.dp))
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-            Text(detail, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(detail), style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (s.shizukuStatus == ShizukuManager.Status.NO_PERMISSION) {
-                    Button(onClick = vm::requestShizukuPermission, shape = RoundedCornerShape(12.dp)) { Text("อนุญาต Shizuku") }
+                    Button(onClick = vm::requestShizukuPermission, shape = RoundedCornerShape(12.dp)) {
+                        Text(stringResource(R.string.action_allow_shizuku))
+                    }
                 } else if (!s.shizukuBound) {
-                    Button(onClick = { openShizuku(context) }, shape = RoundedCornerShape(12.dp)) { Text("เปิด Shizuku") }
+                    Button(onClick = { openShizuku(context) }, shape = RoundedCornerShape(12.dp)) {
+                        Text(stringResource(R.string.action_open_shizuku))
+                    }
                 }
                 OutlinedButton(onClick = vm::refreshShizuku, shape = RoundedCornerShape(12.dp)) {
                     Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("ตรวจอีกครั้ง")
+                    Text(stringResource(R.string.action_check_again))
                 }
             }
         }
@@ -225,15 +179,21 @@ private fun StatusCard(s: UiState, vm: MainViewModel) {
 
 @Composable
 private fun DeviceCard(rom: Rom) {
-    SectionCard("เครื่องของคุณ", icon = Icons.Default.Phone) {
+    SectionCard(stringResource(R.string.device_title), icon = Icons.Default.Phone) {
         Text(
-            "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+            stringResource(
+                R.string.device_line,
+                Build.MANUFACTURER.replaceFirstChar { it.uppercase() },
+                Build.MODEL,
+                Build.VERSION.RELEASE,
+                Build.VERSION.SDK_INT,
+            ),
             style = MaterialTheme.typography.bodyMedium,
         )
-        Pill(rom.label, MaterialTheme.colorScheme.secondary)
+        Pill(rom.displayName(), MaterialTheme.colorScheme.secondary)
         if (rom != Rom.OTHER) {
             Text(
-                "ขั้นตอนและวิธีแก้ปัญหาด้านล่างปรับให้ตรงกับยี่ห้อนี้แล้ว",
+                stringResource(R.string.device_tailored),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -243,52 +203,39 @@ private fun DeviceCard(rom: Rom) {
 
 // ---------------- คู่มือทีละขั้น ----------------
 
-private fun devOptionsPath(rom: Rom): String = when (rom) {
-    Rom.COLOROS -> "ตั้งค่า > เกี่ยวกับอุปกรณ์ > เวอร์ชัน > แตะ \"หมายเลขเวอร์ชัน\" (Build number) 7 ครั้งติดกัน แล้วใส่รหัสปลดล็อกหน้าจอ เมนูนักพัฒนาจะอยู่ที่ ตั้งค่า > ระบบ (หรือ ตั้งค่าเพิ่มเติม) > ตัวเลือกสำหรับนักพัฒนา"
-    Rom.XIAOMI -> "ตั้งค่า > เกี่ยวกับโทรศัพท์ > แตะ \"เวอร์ชัน OS\" (HyperOS/MIUI) 7 ครั้งติดกัน แล้วใส่รหัสปลดล็อกหน้าจอ เมนูนักพัฒนาจะอยู่ที่ ตั้งค่า > การตั้งค่าเพิ่มเติม > ตัวเลือกสำหรับนักพัฒนา"
-    Rom.SAMSUNG -> "ตั้งค่า > เกี่ยวกับโทรศัพท์ > ข้อมูลซอฟต์แวร์ > แตะ \"หมายเลขรุ่นสร้าง\" (Build number) 7 ครั้งติดกัน แล้วใส่รหัสปลดล็อกหน้าจอ เมนูนักพัฒนาจะอยู่ล่างสุดของหน้าการตั้งค่า"
-    else -> "ตั้งค่า > เกี่ยวกับโทรศัพท์ > แตะ \"หมายเลขบิลด์\" (Build number) 7 ครั้งติดกัน แล้วใส่รหัสปลดล็อกหน้าจอ จนขึ้นว่า \"คุณเป็นนักพัฒนาแล้ว\" เมนูนักพัฒนามักอยู่ใน ตั้งค่า > ระบบ"
+@StringRes
+private fun devOptionsPath(rom: Rom): Int = when (rom) {
+    Rom.COLOROS -> R.string.devpath_coloros
+    Rom.XIAOMI -> R.string.devpath_xiaomi
+    Rom.SAMSUNG -> R.string.devpath_samsung
+    else -> R.string.devpath_other
 }
 
 @Composable
 private fun GuideCard(s: UiState, rom: Rom, shizukuInstalled: Boolean, vm: MainViewModel) {
     val context = LocalContext.current
     val running = s.shizukuStatus == ShizukuManager.Status.READY || s.shizukuStatus == ShizukuManager.Status.NO_PERMISSION
-    SectionCard("วิธีเชื่อม Shizuku (ทำครั้งแรกครั้งเดียว)", subtitle = "Shizuku ให้แอปนี้ใช้สิทธิ์ระดับ adb เพื่อเข้าโฟลเดอร์ Android/data ของเกม โดยไม่ต้อง root") {
-        GuideStep(1, "ติดตั้งแอป Shizuku", done = shizukuInstalled,
-            text = "ดาวน์โหลดแอป Shizuku (ผู้พัฒนา Xingchen & Rikka) จาก Play Store ฟรี",
-        ) {
-            if (!shizukuInstalled) FilledTonalButton(onClick = { openStore(context) }) { Text("เปิด Play Store") }
+    SectionCard(stringResource(R.string.guide_title), subtitle = stringResource(R.string.guide_subtitle)) {
+        GuideStep(1, stringResource(R.string.step1_title), stringResource(R.string.step1_text), done = shizukuInstalled) {
+            if (!shizukuInstalled) {
+                FilledTonalButton(onClick = { openStore(context) }) { Text(stringResource(R.string.action_open_store)) }
+            }
         }
-        GuideStep(2, "เปิดตัวเลือกสำหรับนักพัฒนา", text = devOptionsPath(rom)) {
-            FilledTonalButton(onClick = { openDevOptions(context) }) { Text("เปิดตัวเลือกนักพัฒนา") }
+        GuideStep(2, stringResource(R.string.step2_title), stringResource(devOptionsPath(rom))) {
+            FilledTonalButton(onClick = { openDevOptions(context) }) { Text(stringResource(R.string.action_open_dev)) }
         }
-        GuideStep(3, "เปิดการแก้ไขข้อบกพร่องแบบไร้สาย",
-            text = "เชื่อมต่อ Wi-Fi ก่อน (ไม่ต้องมีอินเทอร์เน็ตก็ได้ แต่ต้องเชื่อม Wi-Fi) จากนั้นในตัวเลือกสำหรับนักพัฒนา เปิดสวิตช์ \"การแก้ไขข้อบกพร่องแบบไร้สาย\" (Wireless debugging) แล้วกดอนุญาตเมื่อระบบถามถึงเครือข่ายนี้\n\nแนะนำ: เปิด \"ปิดการหมดเวลาการให้สิทธิ์ adb\" (Disable adb authorization timeout) ด้วย ถ้ามีตัวเลือกนี้ จะได้ไม่ต้องจับคู่ใหม่บ่อย",
-        )
-        GuideStep(4, "จับคู่ Shizuku กับระบบ",
-            text = "1) เปิด Shizuku ในหัวข้อ \"เริ่มต้นผ่านการแก้ไขข้อบกพร่องแบบไร้สาย\" กด \"จับคู่\" Shizuku จะขึ้นการแจ้งเตือนค้างไว้ (ถ้าถามสิทธิ์แจ้งเตือน ให้กดอนุญาต)\n" +
-                "2) กลับไปหน้า \"การแก้ไขข้อบกพร่องแบบไร้สาย\" แตะ \"จับคู่อุปกรณ์ด้วยรหัสการจับคู่\" จะเห็นรหัส 6 หลัก\n" +
-                "3) ดึงแถบแจ้งเตือนลงมาโดยไม่ปิดหน้ารหัส กด \"ป้อนรหัสการจับคู่\" ในการแจ้งเตือนของ Shizuku แล้วพิมพ์รหัส 6 หลัก\n" +
-                "4) รอจนการแจ้งเตือนบอกว่าจับคู่สำเร็จ",
-        ) {
-            FilledTonalButton(onClick = { openShizuku(context) }) { Text("เปิด Shizuku") }
+        GuideStep(3, stringResource(R.string.step3_title), stringResource(R.string.step3_text))
+        GuideStep(4, stringResource(R.string.step4_title), stringResource(R.string.step4_text)) {
+            FilledTonalButton(onClick = { openShizuku(context) }) { Text(stringResource(R.string.action_open_shizuku)) }
         }
-        GuideStep(5, "เริ่ม Shizuku", done = running,
-            text = "ในแอป Shizuku กด \"เริ่ม\" ในหัวข้อเดิม รอจนหน้าแรกขึ้นว่า Shizuku กำลังทำงาน\n\nทุกครั้งที่รีสตาร์ทเครื่อง ต้องเปิด Wireless debugging แล้วกด \"เริ่ม\" ใหม่ แต่ไม่ต้องจับคู่ใหม่",
-        )
-        GuideStep(6, "อนุญาตแอปนี้", done = s.shizukuBound,
-            text = "กลับมาที่ FPS Unlocker กดปุ่ม \"อนุญาต Shizuku\" ในการ์ดด้านบน แล้วเลือก \"อนุญาตตลอด\" สถานะมุมขวาบนจะเปลี่ยนเป็นสีเขียว",
-        ) {
+        GuideStep(5, stringResource(R.string.step5_title), stringResource(R.string.step5_text), done = running)
+        GuideStep(6, stringResource(R.string.step6_title), stringResource(R.string.step6_text), done = s.shizukuBound) {
             if (s.shizukuStatus == ShizukuManager.Status.NO_PERMISSION) {
-                Button(onClick = vm::requestShizukuPermission) { Text("อนุญาต Shizuku") }
+                Button(onClick = vm::requestShizukuPermission) { Text(stringResource(R.string.action_allow_shizuku)) }
             }
         }
         if (rom == Rom.COLOROS || rom == Rom.XIAOMI || rom == Rom.MEIZU) {
-            NoticeCard(
-                color = Palette.Warn,
-                text = "ยี่ห้อนี้มักจำกัดสิทธิ์ของ adb ถ้าขั้นที่ 6 ขึ้นว่า \"การอนุญาตของ adb นั้นจำกัด\" ให้ดูวิธีแก้ในหัวข้อแก้ปัญหาที่ไฮไลต์ไว้ด้านล่าง",
-            )
+            NoticeCard(color = Palette.Warn, text = stringResource(R.string.guide_brand_warning))
         }
     }
 }
@@ -323,12 +270,16 @@ private fun TroubleCard(t: Trouble, highlight: Boolean) {
     ) {
         Column(Modifier.padding(14.dp).animateContentSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Warning, null, tint = if (highlight) Palette.Warn else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Default.Warning, null,
+                    tint = if (highlight) Palette.Warn else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(t.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(t.title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     t.rom?.let {
-                        Text(it.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                        Text(it.displayName(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                     }
                 }
                 Icon(if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
@@ -337,7 +288,7 @@ private fun TroubleCard(t: Trouble, highlight: Boolean) {
                 t.steps.forEachIndexed { i, step ->
                     Row {
                         Text("${i + 1}.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, modifier = Modifier.width(20.dp))
-                        Text(step, style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(step), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -347,16 +298,16 @@ private fun TroubleCard(t: Trouble, highlight: Boolean) {
 
 @Composable
 private fun SafCard(s: UiState, onRequestSafAccess: () -> Unit) {
-    SectionCard("ทางเลือกสำรอง: SAF (Android 11–12 เท่านั้น)", subtitle = "ให้สิทธิ์เฉพาะโฟลเดอร์ของเกมที่เลือก โดยไม่ต้องใช้ Shizuku") {
+    SectionCard(stringResource(R.string.saf_title), subtitle = stringResource(R.string.saf_subtitle)) {
         Text(
-            if (s.packageName.isBlank()) "เลือกเกมในแท็บ \"เกม\" ก่อน" else "เกมที่เลือก: ${s.packageName}",
+            if (s.packageName.isBlank()) stringResource(R.string.saf_pick_game) else stringResource(R.string.saf_selected, s.packageName),
             style = MaterialTheme.typography.bodySmall,
         )
         FilledTonalButton(onClick = onRequestSafAccess, enabled = s.packageName.isNotBlank()) {
-            Text(if (s.safGranted) "ได้สิทธิ์แล้ว (ขอใหม่)" else "ขอสิทธิ์โฟลเดอร์เกม")
+            Text(stringResource(if (s.safGranted) R.string.saf_granted else R.string.saf_request))
         }
         Text(
-            "ในหน้าที่เปิดขึ้น ให้กด \"ใช้โฟลเดอร์นี้\" แล้วกด \"อนุญาต\"",
+            stringResource(R.string.saf_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -365,10 +316,9 @@ private fun SafCard(s: UiState, onRequestSafAccess: () -> Unit) {
 
 @Composable
 private fun SafetyCard() {
-    SectionCard("ก่อนใช้งาน ควรรู้", icon = Icons.Default.Warning) {
+    SectionCard(stringResource(R.string.safety_title), icon = Icons.Default.Warning) {
         Text(
-            "การแก้ไฟล์ของเกมออนไลน์อาจผิดข้อตกลงการใช้งานของเกม และระบบป้องกันการโกงอาจตรวจพบได้ ควรทดลองกับบัญชีสำรองก่อน " +
-                "แอปนี้แก้ได้เฉพาะไฟล์ที่เป็นข้อความธรรมดา ถ้าเกมเข้ารหัสไฟล์ตั้งค่า หรือกำหนด FPS จากเซิร์ฟเวอร์ แอปจะแก้ไม่ได้ และจะไม่พยายามเจาะการเข้ารหัส",
+            stringResource(R.string.safety_text),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

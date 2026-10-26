@@ -20,11 +20,11 @@ import rikka.shizuku.Shizuku
  */
 class ShizukuManager {
 
-    enum class Status(val label: String) {
-        NOT_RUNNING("Shizuku ไม่ได้รัน"),
-        UNSUPPORTED("Shizuku เวอร์ชันเก่าเกินไป (ต้อง v11 ขึ้นไป)"),
-        NO_PERMISSION("Shizuku รันอยู่ แต่ยังไม่ได้อนุญาตแอปนี้"),
-        READY("เชื่อมต่อ Shizuku แล้ว"),
+    enum class Status {
+        NOT_RUNNING,
+        UNSUPPORTED,
+        NO_PERMISSION,
+        READY,
     }
 
     private val _status = MutableStateFlow(Status.NOT_RUNNING)

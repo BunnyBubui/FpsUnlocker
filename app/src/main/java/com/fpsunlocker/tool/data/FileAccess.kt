@@ -3,6 +3,7 @@ package com.fpsunlocker.tool.data
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.fpsunlocker.tool.R
 import com.fpsunlocker.tool.IFileService
 import java.io.FileNotFoundException
 
@@ -83,7 +84,7 @@ class SafFileAccess(
     override val label = "SAF"
 
     private val root: DocumentFile = DocumentFile.fromTreeUri(context, treeUri)
-        ?: throw IllegalStateException("เปิดโฟลเดอร์ที่ได้สิทธิ์ไว้ไม่ได้ ลองขอสิทธิ์ใหม่")
+        ?: throw LocalizedException(R.string.err_saf_open_root)
 
     val rootName: String? get() = root.name
 
@@ -103,17 +104,17 @@ class SafFileAccess(
         val parts = segments(rel)
         val parent = if (parts.size > 1) require(parts.dropLast(1).joinToString("/")) else root
         return parent.createFile("application/octet-stream", parts.last())
-            ?: throw IllegalStateException("สร้างไฟล์ $rel ไม่ได้")
+            ?: throw LocalizedException(R.string.err_saf_create, rel)
     }
 
     private fun readBytes(rel: String): ByteArray =
         context.contentResolver.openInputStream(require(rel).uri)?.use { it.readBytes() }
-            ?: throw IllegalStateException("เปิดไฟล์ $rel ไม่ได้")
+            ?: throw LocalizedException(R.string.err_saf_read, rel)
 
     private fun writeBytes(rel: String, bytes: ByteArray) {
         val file = find(rel) ?: createFile(rel)
         context.contentResolver.openOutputStream(file.uri, "wt")?.use { it.write(bytes) }
-            ?: throw IllegalStateException("เขียนไฟล์ $rel ไม่ได้")
+            ?: throw LocalizedException(R.string.err_saf_write, rel)
     }
 
     override fun readText(rel: String) = readBytes(rel).toString(Charsets.UTF_8)

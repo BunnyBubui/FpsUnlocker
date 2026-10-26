@@ -7,7 +7,9 @@ import android.os.Build
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.annotation.StringRes
 import com.fpsunlocker.tool.App
+import com.fpsunlocker.tool.R
 import com.fpsunlocker.tool.data.ConfigEditor
 import com.fpsunlocker.tool.data.DisplayInfo
 import com.fpsunlocker.tool.data.FileAccess
@@ -15,6 +17,7 @@ import com.fpsunlocker.tool.data.FileEntry
 import com.fpsunlocker.tool.data.GameApp
 import com.fpsunlocker.tool.data.GameRepository
 import com.fpsunlocker.tool.data.KeyNotFoundException
+import com.fpsunlocker.tool.data.LocalizedException
 import com.fpsunlocker.tool.data.SafFileAccess
 import com.fpsunlocker.tool.data.ScanHit
 import com.fpsunlocker.tool.data.ShizukuFileAccess
@@ -218,7 +221,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun onTreeGranted(uri: Uri) {
         prefs.edit().putString(KEY_TREE, uri.toString()).apply()
         updateSafState()
-        log("ได้สิทธิ์โฟลเดอร์ผ่าน SAF แล้ว")
+        log(str(R.string.msg_saf_granted))
         refreshFileInfo()
     }
 
@@ -263,11 +266,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val games = withContext(Dispatchers.IO) { repo.loadApps(folders) }
                 _ui.update { it.copy(games = games, dataFoldersScanned = folders.isNotEmpty()) }
                 log(
-                    "✓ พบเกม ${games.count { it.isGame }} รายการ จากแอปทั้งหมด ${games.size}" +
-                        if (folders.isNotEmpty()) " · โฟลเดอร์ใน Android/data ${folders.size}" else " · ยังไม่ได้สแกน Android/data (ต้องใช้ Shizuku)"
+                    "✓ " + str(R.string.msg_games_found, games.count { it.isGame }, games.size) +
+                        if (folders.isNotEmpty()) str(R.string.msg_folders_scanned, folders.size) else str(R.string.msg_folders_not_scanned)
                 )
             } catch (e: Exception) {
-                log("✗ โหลดรายชื่อเกม: ${e.message ?: e.javaClass.simpleName}")
+                log("✗ " + str(R.string.msg_load_games_failed, e.userMessage()))
             } finally {
                 _ui.update { it.copy(gamesLoading = false) }
             }
@@ -315,7 +318,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 runCatching { shell.exec("du -sh \"$DATA_ROOT/$pkg\" 2>/dev/null | cut -f1").trim() }.getOrNull()
             }
             if (_ui.value.packageName == pkg) {
-                _ui.update { it.copy(dataSize = size?.takeIf { s -> s.isNotEmpty() } ?: "ไม่มีโฟลเดอร์") }
+                _ui.update { it.copy(dataSize = size?.takeIf { s -> s.isNotEmpty() } ?: str(R.string.msg_no_folder)) }
             }
         }
     }
@@ -369,7 +372,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      *   ซึ่งเป็นที่เก็บค่าตั้งค่าของเกมส่วนใหญ่ เช่น Unity PlayerPrefs ใน shared_prefs
      * - ไฟล์ที่ path มีคำว่า config / setting / prefs ถูกอ่านก่อน
      */
-    fun scan() = withAccess("Scan") { fa ->
+    fun scan() = withAccess(str(R.string.task_scan)) { fa ->
         val found = LinkedHashMap<String, FileEntry>()
         var truncated = false
 
@@ -407,51 +410,56 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
         val internalNote = when {
             ShizukuFileAccess.INTERNAL in topDirs -> ""
-            else -> " · ยังไม่ได้สแกน /data/data ของเกม (ต้องใช้ Shizuku แบบ root)"
+            else -> str(R.string.msg_internal_not_scanned)
         }
         val verdict = when {
             hits.isNotEmpty() -> Verdict(
                 VerdictLevel.GOOD,
-                "พบคีย์ที่น่าจะเกี่ยวกับ FPS ${hits.size} รายการ แตะรายการเพื่อเลือก แล้วดูเนื้อหาไฟล์ก่อนกด Apply",
+                str(R.string.verdict_good, hits.size),
             )
             textFiles.isNotEmpty() -> Verdict(
                 VerdictLevel.MAYBE,
-                "ไม่พบคีย์ชื่อเกี่ยวกับ FPS แต่มีไฟล์ข้อความ ${textFiles.size} ไฟล์ ลองเปิดดูไฟล์ที่ชื่อมีคำว่า config, setting หรือ prefs$internalNote",
+                str(R.string.verdict_maybe, textFiles.size, internalNote),
             )
             found.isNotEmpty() -> Verdict(
                 VerdictLevel.BAD,
-                "ไฟล์ทั้งหมดเป็น binary หรือถูกเข้ารหัส" +
-                    (if (binaryHits.isNotEmpty()) " (มีคำเกี่ยวกับ FPS อยู่ใน: ${binaryHits.joinToString("; ")})" else "") +
-                    " แอปแก้ไฟล์แบบนี้ไม่ได้ ลองใช้ส่วน \"บังคับ FPS\" แทน$internalNote",
+                str(
+                    R.string.verdict_binary,
+                    if (binaryHits.isNotEmpty()) str(R.string.verdict_binary_words, binaryHits.joinToString("; ")) else "",
+                    internalNote,
+                ),
             )
             else -> Verdict(
                 VerdictLevel.BAD,
-                "ไม่พบไฟล์ในโฟลเดอร์ของเกม เกมอาจเก็บค่าไว้ใน /data/data$internalNote",
+                str(R.string.verdict_none, internalNote),
             )
         }
 
         _ui.update { it.copy(scanHits = hits, textFiles = textFiles.take(300), verdict = verdict) }
-        buildString {
-            append("ไฟล์เล็ก ${found.size}")
-            if (truncated || found.size > MAX_READS) append(" (ถึงขีดจำกัด อาจตรวจไม่ครบ)")
-            append(" · ข้อความ ${textFiles.size} · binary/เข้ารหัส $binary · คีย์ FPS ${hits.size}")
-        }
+        str(
+            R.string.msg_scan_summary,
+            found.size,
+            if (truncated || found.size > MAX_READS) str(R.string.msg_scan_truncated) else "",
+            textFiles.size,
+            binary,
+            hits.size,
+        )
     }
 
     /** เปิดดูเนื้อหาไฟล์ */
-    fun preview(path: String) = withAccess("ดูไฟล์") { fa ->
-        if (path.isBlank()) throw IllegalArgumentException("ยังไม่ได้เลือกไฟล์")
+    fun preview(path: String) = withAccess(str(R.string.task_view)) { fa ->
+        if (path.isBlank()) throw LocalizedException(R.string.err_no_file_selected)
         val size = fa.size(path)
-        if (size > MAX_READ_SIZE) throw IllegalStateException("ไฟล์ใหญ่เกินไป ($size bytes)")
+        if (size > MAX_READ_SIZE) throw LocalizedException(R.string.err_file_too_big, size)
         val content = fa.readText(path)
         val text = if (ConfigEditor.isProbablyBinary(content)) {
-            "[binary หรือเข้ารหัส · $size bytes]\n" +
+            str(R.string.preview_binary_header, size) + "\n" +
                 content.take(600).map { c -> if (c.code in 32..126) c else '.' }.joinToString("")
         } else {
             content.take(6000)
         }
         _ui.update { it.copy(preview = path to text) }
-        "เปิดดู $path ($size bytes)"
+        str(R.string.msg_previewed, path, size)
     }
 
     fun useTextFile(entry: FileEntry) {
@@ -464,15 +472,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // ---------- Apply (2 ขั้น: เตรียม → ยืนยัน) ----------
 
     /** ขั้นที่ 1: คำนวณไฟล์ใหม่และบรรทัดที่เปลี่ยน แล้วให้ผู้ใช้ดูก่อน ยังไม่เขียนอะไรลงไฟล์ */
-    fun prepareApply() = withAccess("Apply") { fa ->
+    fun prepareApply() = withAccess(str(R.string.task_apply)) { fa ->
         val s = _ui.value
-        val value = s.targetValue ?: throw IllegalArgumentException("กรอกค่าสำหรับ Max ก่อน")
+        val value = s.targetValue ?: throw LocalizedException(R.string.err_fill_max)
         val path = s.configPath
         if (s.autoStopGame) stopGame()
 
         val content = fa.readText(path)
         if (ConfigEditor.isProbablyBinary(content)) {
-            throw IllegalStateException("ไฟล์นี้เป็น binary หรือถูกเข้ารหัส แก้ด้วยแอปนี้ไม่ได้")
+            throw LocalizedException(R.string.err_binary_file)
         }
         val format = ConfigEditor.detectFormat(path, content)
         var added = false
@@ -484,14 +492,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             ConfigEditor.addKey(content, format, s.fpsKey, value)
         }
         val changes = diffLines(content, newContent)
-        if (changes.isEmpty()) return@withAccess "ค่าในไฟล์เป็น $value อยู่แล้ว ไม่ต้องแก้"
+        if (changes.isEmpty()) return@withAccess str(R.string.msg_already_value, value)
 
         _ui.update {
             it.copy(
                 pendingApply = PendingApply(path, s.fpsKey, value, changes, newContent, content.hashCode(), added),
             )
         }
-        "เตรียมแก้ ${changes.size} บรรทัด รอยืนยัน"
+        str(R.string.msg_prepared, changes.size)
     }
 
     fun cancelApply() = _ui.update { it.copy(pendingApply = null) }
@@ -500,31 +508,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun confirmApply() {
         val p = _ui.value.pendingApply ?: return
         _ui.update { it.copy(pendingApply = null) }
-        withAccess("Apply") { fa ->
+        withAccess(str(R.string.task_apply)) { fa ->
             val pkg = _ui.value.packageName
             if (_ui.value.autoStopGame) stopGame()
             val current = fa.readText(p.path)
             if (current.hashCode() != p.originalHash) {
-                throw IllegalStateException("ไฟล์ถูกเปลี่ยนระหว่างรอยืนยัน (เกมอาจกำลังเปิดอยู่) ปิดเกมแล้วกด Apply ใหม่")
+                throw LocalizedException(R.string.err_changed_meanwhile)
             }
             val backup = "${p.path}.bak"
             val backupNote = if (!fa.exists(backup)) {
                 fa.copy(p.path, backup)
                 addBackupRecord(BackupRecord(pkg, p.path))
-                "สร้าง backup แล้ว"
+                str(R.string.msg_backup_created)
             } else {
-                "มี backup ต้นฉบับอยู่แล้ว"
+                str(R.string.msg_backup_exists)
             }
 
             fa.writeText(p.path, p.newContent)
 
             val format = ConfigEditor.detectFormat(p.path, p.newContent)
             val check = ConfigEditor.readValue(fa.readText(p.path), format, p.key)
-            if (check != p.value) throw IllegalStateException("เขียนแล้วอ่านกลับได้ $check ไม่ตรงกับ ${p.value}")
+            if (check != p.value) throw LocalizedException(R.string.err_readback, check.toString(), p.value)
 
             saveApplied(pkg, Applied(p.path, p.key, p.value))
-            "ตั้ง ${p.key} = ${p.value} แล้ว" + (if (p.addedKey) " (เพิ่มคีย์ใหม่)" else "") +
-                " · $backupNote · เปิดเกมเพื่อดูผล แล้วใช้ตัววัด FPS ตรวจ"
+            str(R.string.msg_applied, p.key, p.value, if (p.addedKey) str(R.string.diff_added) else "", backupNote)
         }
     }
 
@@ -543,14 +550,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         prepareApply()
     }
 
-    fun restore() = withAccess("Restore") { fa ->
+    fun restore() = withAccess(str(R.string.task_restore)) { fa ->
         val path = _ui.value.configPath
         val backup = "$path.bak"
-        if (!fa.exists(backup)) throw IllegalStateException("ไม่พบไฟล์ $backup")
+        if (!fa.exists(backup)) throw LocalizedException(R.string.err_backup_missing, backup)
         if (_ui.value.autoStopGame) stopGame()
         fa.copy(backup, path)
         clearApplied(_ui.value.packageName)
-        "คืนค่าไฟล์จาก backup แล้ว"
+        str(R.string.msg_restored)
     }
 
     // ---------- Backup ทุกเกม ----------
@@ -558,16 +565,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun restoreBackup(record: BackupRecord) {
         val fa = accessFor(record.packageName)
         if (fa == null) {
-            log("✗ Restore: ต้องเชื่อม Shizuku ก่อน")
+            log("✗ " + str(R.string.err_need_shizuku, str(R.string.task_restore)))
             return
         }
-        launchIo("Restore") {
+        launchIo(str(R.string.task_restore)) {
             val backup = "${record.path}.bak"
-            if (!fa.exists(backup)) throw IllegalStateException("ไม่พบไฟล์ backup แล้ว (อาจถูกลบไปพร้อมข้อมูลเกม)")
+            if (!fa.exists(backup)) throw LocalizedException(R.string.err_backup_gone)
             shellAccess()?.exec("am force-stop ${record.packageName}")
             fa.copy(backup, record.path)
             clearApplied(record.packageName)
-            "คืนค่า ${record.path} ของ ${record.packageName} แล้ว"
+            str(R.string.msg_restored_game, record.path, record.packageName)
         }
     }
 
@@ -584,7 +591,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * ล็อกจอไว้ที่ Hz สูงสุด (settings peak/min_refresh_rate)
      * ช่วยกรณีระบบลด Hz เองระหว่างเล่น แต่ไม่ได้ปลดเพดาน FPS ที่เกมกำหนดเอง
      */
-    fun toggleRefreshLock() = shellTask("ล็อก Hz") { sh ->
+    fun toggleRefreshLock() = shellTask(str(R.string.task_refresh)) { sh ->
         if (!_ui.value.refreshLocked) {
             if (!prefs.contains(KEY_ORIG_PEAK)) {
                 prefs.edit()
@@ -596,13 +603,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             checkShell(sh.exec("settings put system peak_refresh_rate $hz && settings put system min_refresh_rate $hz 2>&1"))
             prefs.edit().putBoolean(KEY_REFRESH_LOCKED, true).apply()
             _ui.update { it.copy(refreshLocked = true) }
-            "ล็อกจอที่ ${hz}Hz แล้ว (บางยี่ห้ออาจไม่ทำตาม ดูค่า Hz ปัจจุบันในการ์ด)"
+            str(R.string.msg_refresh_locked, hz)
         } else {
             restoreSetting(sh, "peak_refresh_rate", prefs.getString(KEY_ORIG_PEAK, "null"))
             restoreSetting(sh, "min_refresh_rate", prefs.getString(KEY_ORIG_MIN, "null"))
             prefs.edit().remove(KEY_ORIG_PEAK).remove(KEY_ORIG_MIN).putBoolean(KEY_REFRESH_LOCKED, false).apply()
             _ui.update { it.copy(refreshLocked = false) }
-            "คืนค่า refresh rate เดิมแล้ว"
+            str(R.string.msg_refresh_restored)
         }
     }
 
@@ -610,10 +617,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * Game Mode ของ Android 13+: ตั้งโหมด Performance และล็อก FPS ของเกมไม่ให้เกินค่าที่เลือก
      * ทำได้แค่ "จำกัด" FPS ให้นิ่ง ดันให้สูงกว่าที่เกมตั้งเองไม่ได้
      */
-    fun toggleGameMode() = shellTask("Game Mode") { sh ->
-        if (Build.VERSION.SDK_INT < 33) throw IllegalStateException("ต้องใช้ Android 13 ขึ้นไป")
+    fun toggleGameMode() = shellTask(str(R.string.task_gamemode)) { sh ->
+        if (Build.VERSION.SDK_INT < 33) throw LocalizedException(R.string.err_need_android13)
         val pkg = _ui.value.packageName
-        if (pkg.isBlank()) throw IllegalStateException("ยังไม่ได้เลือกเกม")
+        if (pkg.isBlank()) throw LocalizedException(R.string.err_no_game)
         val key = gameModeKey(pkg)
         if (!_ui.value.gameModeActive) {
             val previous = sh.exec("device_config get game_overlay $pkg").trim()
@@ -623,8 +630,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val modeOut = sh.exec("cmd game mode performance $pkg 2>&1").trim()
             sh.exec("am force-stop $pkg")
             _ui.update { it.copy(gameModeActive = true) }
-            "ตั้ง Game Mode = Performance และจำกัด FPS ไม่เกิน $cap แล้ว เปิดเกมใหม่เพื่อให้มีผล" +
-                if (modeOut.isNotEmpty()) " (ระบบตอบ: ${modeOut.take(120)})" else ""
+            str(R.string.msg_gm_on, cap) +
+                if (modeOut.isNotEmpty()) str(R.string.msg_system_reply, modeOut.take(120)) else ""
         } else {
             val previous = prefs.getString(key, "null").orEmpty()
             if (previous.isBlank() || previous == "null") {
@@ -635,7 +642,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             sh.exec("cmd game mode standard $pkg")
             prefs.edit().remove(key).apply()
             _ui.update { it.copy(gameModeActive = false) }
-            "ยกเลิก Game Mode ของเกมนี้แล้ว"
+            str(R.string.msg_gm_off)
         }
     }
 
@@ -670,11 +677,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun startOverlay() {
         val ctx = getApplication<Application>()
         if (!FpsOverlayService.canDraw(ctx)) {
-            log("✗ ยังไม่ได้อนุญาตให้แสดงทับแอปอื่น")
+            log("✗ " + str(R.string.err_no_overlay_permission))
             return
         }
         FpsOverlayService.start(ctx, _ui.value.packageName.ifBlank { null })
-        log("✓ เปิดตัววัด FPS แล้ว เปิดเกมได้เลย (กดค้างที่ตัวเลขเพื่อปิด)")
+        log("✓ " + str(R.string.msg_overlay_started))
     }
 
     fun stopOverlay() = FpsOverlayService.stop(getApplication())
@@ -754,7 +761,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         for (i in 0 until maxOf(a.size, b.size)) {
             val x = a.getOrNull(i)
             val y = b.getOrNull(i)
-            if (x != y) out += (x ?: "(ไม่มี)").take(200) to (y ?: "(ไม่มี)").take(200)
+            if (x != y) out += (x ?: str(R.string.diff_missing_line)).take(200) to (y ?: str(R.string.diff_missing_line)).take(200)
             if (out.size >= 20) break
         }
         return out
@@ -770,7 +777,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun withAccess(name: String, block: suspend (FileAccess) -> String) {
         val fa = fileAccess()
         if (fa == null) {
-            log("✗ $name: ยังเข้าถึงโฟลเดอร์เกมไม่ได้ (เลือกเกม และเชื่อม Shizuku ก่อน)")
+            log("✗ " + str(R.string.err_no_access, name))
             return
         }
         launchIo(name) { block(fa) + " [${fa.label}]" }
@@ -779,7 +786,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun shellTask(name: String, block: suspend (ShizukuFileAccess) -> String) {
         val sh = shellAccess()
         if (sh == null) {
-            log("✗ $name: ต้องเชื่อม Shizuku ก่อน")
+            log("✗ " + str(R.string.err_need_shizuku, name))
             return
         }
         launchIo(name) { block(sh) }
@@ -792,13 +799,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val message = withContext(Dispatchers.IO) { block() }
                 log("✓ $message")
             } catch (e: Exception) {
-                log("✗ $name: ${e.message ?: e.javaClass.simpleName}")
+                log("✗ $name: ${e.userMessage()}")
             } finally {
                 _ui.update { it.copy(busy = false) }
                 refreshFileInfo()
             }
         }
     }
+
+    /** ข้อความตามภาษาเครื่อง */
+    private fun str(@StringRes res: Int, vararg args: Any): String =
+        getApplication<Application>().getString(res, *args)
+
+    private fun Throwable.userMessage(): String =
+        if (this is LocalizedException) str(res, *args) else message ?: javaClass.simpleName
 
     private fun log(message: String) {
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())

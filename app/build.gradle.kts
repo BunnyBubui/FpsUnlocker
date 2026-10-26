@@ -12,8 +12,8 @@ android {
         applicationId = "com.fpsunlocker.tool"
         minSdk = 30          // Android 11+
         targetSdk = 35
-        versionCode = 4
-        versionName = "3.0"
+        versionCode = 5
+        versionName = "3.1"
     }
 
     // กุญแจเซ็นแบบ debug ที่เก็บไว้ใน repo (รหัสมาตรฐาน "android")

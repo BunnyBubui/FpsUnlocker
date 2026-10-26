@@ -35,8 +35,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fpsunlocker.tool.R
 import com.fpsunlocker.tool.shizuku.ShizukuManager
 
 @Composable
@@ -58,19 +60,19 @@ fun MainScreen(vm: MainViewModel, onRequestSafAccess: () -> Unit) {
                     selected = s.tab == Tabs.GAMES,
                     onClick = { vm.setTab(Tabs.GAMES) },
                     icon = { Icon(Icons.AutoMirrored.Filled.List, null) },
-                    label = { Text("เกม") },
+                    label = { Text(stringResource(R.string.tab_games)) },
                 )
                 NavigationBarItem(
                     selected = s.tab == Tabs.TUNE,
                     onClick = { vm.setTab(Tabs.TUNE) },
                     icon = { Icon(Icons.Default.Build, null) },
-                    label = { Text("ปรับ FPS") },
+                    label = { Text(stringResource(R.string.tab_tune)) },
                 )
                 NavigationBarItem(
                     selected = s.tab == Tabs.SETUP,
                     onClick = { vm.setTab(Tabs.SETUP) },
                     icon = { Icon(Icons.Default.Settings, null) },
-                    label = { Text("ตั้งค่า & คู่มือ") },
+                    label = { Text(stringResource(R.string.tab_setup)) },
                 )
             }
         },
@@ -113,18 +115,18 @@ private fun TopBar(status: ShizukuManager.Status, bound: Boolean, onStatusClick:
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("FPS Unlocker", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(
-                    "ปรับเฟรมเรตผ่านไฟล์ตั้งค่าของเกม",
+                    stringResource(R.string.app_tagline),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             val (color, text) = when {
-                bound -> Palette.Good to "Shizuku พร้อม"
-                status == ShizukuManager.Status.READY -> Palette.Warn to "กำลังเชื่อม…"
-                status == ShizukuManager.Status.NO_PERMISSION -> Palette.Warn to "ยังไม่อนุญาต"
-                else -> Palette.Bad to "Shizuku ปิดอยู่"
+                bound -> Palette.Good to stringResource(R.string.status_ready)
+                status == ShizukuManager.Status.READY -> Palette.Warn to stringResource(R.string.status_connecting)
+                status == ShizukuManager.Status.NO_PERMISSION -> Palette.Warn to stringResource(R.string.status_no_permission)
+                else -> Palette.Bad to stringResource(R.string.status_off)
             }
             Surface(
                 shape = RoundedCornerShape(50),

@@ -5,9 +5,11 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.LruCache
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
+import com.fpsunlocker.tool.R
 import java.io.File
 import java.util.zip.ZipFile
 
@@ -150,15 +152,12 @@ object EngineDetector {
         else -> null
     }
 
-    /** คำแนะนำสั้นๆ ว่าเกมที่ใช้ engine นี้มักเก็บค่าตั้งค่าไว้แบบไหน */
-    fun hint(engine: String?): String = when {
-        engine == null ->
-            "ไม่รู้จัก engine นี้ อาจเป็น engine ของค่ายเอง ให้ลอง Scan แล้วดูว่าไฟล์อ่านเป็นข้อความได้หรือไม่"
-        engine.startsWith("Unreal") ->
-            "เกม Unreal มักเก็บค่าใน …/Saved/Config/Android/*.ini เป็นข้อความธรรมดา มีโอกาสแก้ได้"
-        engine.startsWith("Unity") ->
-            "เกม Unity มักเก็บค่าใน PlayerPrefs ที่ /data/data ซึ่งเข้าไม่ได้หากไม่ root แต่บางเกมเขียนไฟล์ตั้งค่าเองไว้ใน Android/data"
-        else ->
-            "ลอง Scan เพื่อดูว่าเกมเก็บค่าตั้งค่าเป็นไฟล์ข้อความหรือไม่"
+    /** คำแนะนำสั้นๆ ว่าเกมที่ใช้ engine นี้มักเก็บค่าตั้งค่าไว้แบบไหน (id ของข้อความ) */
+    @StringRes
+    fun hint(engine: String?): Int = when {
+        engine == null -> R.string.engine_hint_unknown
+        engine.startsWith("Unreal") -> R.string.engine_hint_unreal
+        engine.startsWith("Unity") -> R.string.engine_hint_unity
+        else -> R.string.engine_hint_other
     }
 }

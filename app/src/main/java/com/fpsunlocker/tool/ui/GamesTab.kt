@@ -35,7 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.fpsunlocker.tool.R
 import com.fpsunlocker.tool.data.GameApp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,10 +61,10 @@ fun GamesTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
                     IconButton(onClick = vm::loadGames, enabled = !s.gamesLoading) {
-                        Icon(Icons.Default.Refresh, "สแกนใหม่")
+                        Icon(Icons.Default.Refresh, stringResource(R.string.games_rescan))
                     }
                 },
-                placeholder = { Text("ค้นหาชื่อเกม ค่าย หรือ package") },
+                placeholder = { Text(stringResource(R.string.games_search_hint)) },
             )
         }
 
@@ -71,17 +73,17 @@ fun GamesTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
                 FilterChip(
                     selected = !s.showAllApps,
                     onClick = { vm.onShowAllApps(false) },
-                    label = { Text("เฉพาะเกม") },
+                    label = { Text(stringResource(R.string.games_filter_games)) },
                 )
                 Spacer(Modifier.width(8.dp))
                 FilterChip(
                     selected = s.showAllApps,
                     onClick = { vm.onShowAllApps(true) },
-                    label = { Text("ทุกแอป") },
+                    label = { Text(stringResource(R.string.games_filter_all)) },
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    if (s.gamesLoading) "กำลังสแกน…" else "${list.size} รายการ",
+                    if (s.gamesLoading) stringResource(R.string.games_scanning) else stringResource(R.string.games_count, list.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -99,11 +101,11 @@ fun GamesTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
                         Icon(Icons.Default.Info, null, tint = Palette.Warn)
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            "ตอนนี้เห็นเฉพาะเกมที่ติดตั้ง ยังไม่ได้สแกนโฟลเดอร์ Android/data เพราะต้องเชื่อม Shizuku ก่อน",
+                            stringResource(R.string.games_no_data_notice),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.weight(1f),
                         )
-                        TextButton(onClick = { vm.setTab(Tabs.SETUP) }) { Text("วิธีเชื่อม") }
+                        TextButton(onClick = { vm.setTab(Tabs.SETUP) }) { Text(stringResource(R.string.action_how_to_connect)) }
                     }
                 }
             }
@@ -112,7 +114,7 @@ fun GamesTab(s: UiState, vm: MainViewModel, listState: LazyListState) {
         if (!s.gamesLoading && list.isEmpty()) {
             item {
                 Text(
-                    if (s.query.isNotBlank()) "ไม่พบรายการที่ตรงกับ \"${s.query}\"" else "ไม่พบเกมในเครื่อง ลองกด \"ทุกแอป\"",
+                    if (s.query.isNotBlank()) stringResource(R.string.games_no_match, s.query) else stringResource(R.string.games_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp),
@@ -174,9 +176,9 @@ private fun GameRow(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
                     game.engine?.let { Pill(it, MaterialTheme.colorScheme.primary) }
-                    if (game.hasDataFolder) Pill("มีโฟลเดอร์ data", Palette.Good)
-                    if (!game.installed) Pill("ถอนแอปแล้ว", Palette.Bad)
-                    appliedValue?.let { Pill("ตั้งไว้ $it", Palette.Amber) }
+                    if (game.hasDataFolder) Pill(stringResource(R.string.pill_has_data), Palette.Good)
+                    if (!game.installed) Pill(stringResource(R.string.pill_uninstalled), Palette.Bad)
+                    appliedValue?.let { Pill(stringResource(R.string.pill_applied, it), Palette.Amber) }
                 }
             }
             Icon(

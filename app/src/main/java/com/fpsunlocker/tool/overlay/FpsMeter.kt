@@ -17,7 +17,8 @@ import com.fpsunlocker.tool.IFileService
  */
 class FpsMeter(private val service: IFileService, private val packageName: String?) {
 
-    var method: String = "—"
+    /** วิธีที่ใช้วัดล่าสุด: true = เฉพาะเกม, false = ทั้งจอ, null = ยังวัดไม่ได้ */
+    var measuresGame: Boolean? = null
         private set
 
     private var layer: String? = null
@@ -40,7 +41,7 @@ class FpsMeter(private val service: IFileService, private val packageName: Strin
                 val fps = runCatching { latencyFps(name) }.getOrNull()
                 if (fps != null && fps > 0f) {
                     zeroStreak = 0
-                    method = "เฉพาะเกม"
+                    measuresGame = true
                     return fps
                 }
                 // ได้ 0 ติดกันหลายครั้ง อาจเลือก layer ผิด → หา layer ใหม่ และใช้วิธีวัดทั้งจอไปก่อน
@@ -50,7 +51,7 @@ class FpsMeter(private val service: IFileService, private val packageName: Strin
                 }
             }
         }
-        return runCatching { pageFlipFps() }.getOrNull()?.also { method = "ทั้งจอ" }
+        return runCatching { pageFlipFps() }.getOrNull()?.also { measuresGame = false }
     }
 
     private fun findLayer(pkg: String): String? {
