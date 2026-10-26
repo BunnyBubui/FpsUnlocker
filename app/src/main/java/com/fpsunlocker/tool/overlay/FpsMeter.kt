@@ -29,10 +29,11 @@ class FpsMeter(private val service: IFileService, private val packageName: Strin
     private var flipAt = 0L
 
     fun sample(): Float? {
-        if (packageName != null) {
+        val pkg = packageName
+        if (pkg != null) {
             val now = System.nanoTime()
             if (layer == null || now - layerLookupAt > LAYER_REFRESH_NS) {
-                layer = runCatching { findLayer(packageName) }.getOrNull()
+                layer = runCatching { findLayer(pkg) }.getOrNull()
                 layerLookupAt = now
             }
             layer?.let { name ->
