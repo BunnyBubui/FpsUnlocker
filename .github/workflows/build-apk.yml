@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -26,3 +28,15 @@ jobs:
         with:
           name: FpsUnlocker-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      # ทำ Release เพื่อให้ดาวน์โหลด APK บนมือถือได้ตรงๆ ไม่ต้องแตก zip
+      - name: Publish APK as release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk FpsUnlocker.apk
+          gh release create "build-${{ github.run_number }}" FpsUnlocker.apk \
+            --title "FPS Unlocker build ${{ github.run_number }}" \
+            --notes "Debug APK built from ${{ github.sha }}" \
+            --latest
