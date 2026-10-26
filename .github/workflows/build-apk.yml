@@ -2,6 +2,12 @@ name: Build APK
 
 on:
   push:
+    # แก้แค่เอกสารไม่ต้อง build ใหม่
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
   workflow_dispatch:
 
 jobs:
@@ -43,8 +49,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          TAG="v${VERSION}-build${{ github.run_number }}"
           cp app/build/outputs/apk/debug/app-debug.apk FpsUnlocker.apk
-          gh release create "build-${{ github.run_number }}" FpsUnlocker.apk \
-            --title "FPS Unlocker build ${{ github.run_number }}" \
-            --notes "Debug APK built from ${{ github.sha }}" \
+          git log -1 --pretty=%B > commit.txt
+          {
+            echo "## FPS Unlocker v${VERSION} (build ${{ github.run_number }})"
+            echo
+            echo "**Install / ติดตั้ง:** download \`FpsUnlocker.apk\` below and open it. It installs over older builds. / ดาวน์โหลด \`FpsUnlocker.apk\` ด้านล่างแล้วเปิดติดตั้ง ติดตั้งทับเวอร์ชันเก่าได้"
+            echo
+            echo "Requires Android 11+ and [Shizuku](https://shizuku.rikka.app/). / ต้องใช้ Android 11 ขึ้นไปและแอป Shizuku"
+            echo
+            echo "### Changes / สิ่งที่เปลี่ยน"
+            echo
+            sed '/^Co-Authored-By/d;/^Claude-Session/d' commit.txt
+          } > notes.md
+          gh release create "$TAG" FpsUnlocker.apk \
+            --title "FPS Unlocker v${VERSION} (build ${{ github.run_number }})" \
+            --notes-file notes.md \
             --latest
