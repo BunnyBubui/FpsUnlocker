@@ -22,6 +22,9 @@ interface FileAccess {
     fun size(rel: String): Long
     /** รายชื่อไฟล์ขนาด 1..maxSize ใต้ [subDir] (path ที่คืนนับจากโฟลเดอร์ของเกม) */
     fun listFiles(subDir: String, maxDepth: Int, limit: Int, maxSize: Long): List<FileEntry>
+
+    /** ชื่อโฟลเดอร์ย่อยชั้นเดียวใต้ [rel] */
+    fun listDirs(rel: String): List<String>
 }
 
 /** ใช้ได้ทุก Android 11+ ต้องเปิด Shizuku และอนุญาตแอปนี้ก่อน */
@@ -44,6 +47,8 @@ class ShizukuFileAccess(
             FileEntry(prefix + line.substringBeforeLast('\t'), line.substringAfterLast('\t').toLongOrNull() ?: -1L)
         }
     }
+
+    override fun listDirs(rel: String): List<String> = service.listDirs(abs(rel))
 
     fun exec(command: String): String = service.exec(command)
 }
@@ -97,6 +102,9 @@ class SafFileAccess(
     override fun copy(srcRel: String, dstRel: String) = writeBytes(dstRel, readBytes(srcRel))
     override fun exists(rel: String) = find(rel)?.exists() == true
     override fun size(rel: String) = find(rel)?.takeIf { it.isFile }?.length() ?: -1L
+
+    override fun listDirs(rel: String): List<String> =
+        find(rel)?.listFiles()?.filter { it.isDirectory }?.mapNotNull { it.name }?.sorted() ?: emptyList()
 
     override fun listFiles(subDir: String, maxDepth: Int, limit: Int, maxSize: Long): List<FileEntry> {
         val start = find(subDir)?.takeIf { it.isDirectory } ?: return emptyList()

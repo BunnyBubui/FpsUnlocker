@@ -53,6 +53,15 @@ class FileService : IFileService.Stub() {
             .toMutableList()
     }
 
+    override fun listDirs(dir: String?): MutableList<String> = wrap {
+        File(requireNotNull(dir)).listFiles()
+            ?.filter { it.isDirectory }
+            ?.map { it.name }
+            ?.sorted()
+            ?.toMutableList()
+            ?: mutableListOf()
+    }
+
     override fun exec(command: String?): String = wrap {
         val process = ProcessBuilder("sh", "-c", requireNotNull(command))
             .redirectErrorStream(true)

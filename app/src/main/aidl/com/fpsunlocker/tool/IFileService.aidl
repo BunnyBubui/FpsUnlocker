@@ -14,4 +14,6 @@ interface IFileService {
     // คืนเฉพาะไฟล์ขนาด 1..maxSize ในรูป "path<TAB>size" (path นับจาก dir)
     List<String> listFiles(String dir, int maxDepth, int limit, long maxSize) = 7;
     String exec(String command) = 8;
+    // รายชื่อโฟลเดอร์ย่อย (ชั้นเดียว)
+    List<String> listDirs(String dir) = 9;
 }

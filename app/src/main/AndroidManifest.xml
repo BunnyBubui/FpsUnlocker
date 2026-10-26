@@ -9,6 +9,9 @@
         สิทธิ์ของ Shizuku ขอผ่าน ShizukuProvider ด้านล่างตอนรัน (Shizuku.requestPermission)
     -->
 
+    <!-- ใช้แสดงรายชื่อเกมที่ติดตั้ง พร้อมไอคอนและชื่อ (Android 11+ ต้องขอสิทธิ์นี้จึงจะเห็นแอปทั้งหมด) -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
