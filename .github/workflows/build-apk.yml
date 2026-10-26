@@ -22,7 +22,15 @@ jobs:
       - name: Build debug APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+      # ถ้า build พัง ส่งบรรทัด error ออกมาเป็น annotation ให้อ่านได้จากหน้า Actions
+      - name: Report compile errors
+        if: failure()
+        run: |
+          grep -E "^e: |error:|What went wrong|AAPT" -A2 build.log | head -40 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
