@@ -16,6 +16,17 @@ android {
         versionName = "2.0"
     }
 
+    // กุญแจเซ็นแบบ debug ที่เก็บไว้ใน repo (รหัสมาตรฐาน "android")
+    // ถ้าไม่ล็อกไว้ GitHub Actions จะสร้างกุญแจใหม่ทุกครั้ง แล้ว APK ใหม่จะติดตั้งทับตัวเก่าไม่ได้
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false   // ต้องปิดไว้ ไม่งั้นคลาส FileService ของ Shizuku อาจถูกตัดทิ้ง
