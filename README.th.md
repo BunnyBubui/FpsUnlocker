@@ -1,22 +1,16 @@
-<div align="center">
+<p align="center">
+  <img src="docs/assets/readme-banner.svg" alt="FPS Unlocker" width="100%" />
+</p>
 
-<img src="docs/icon.svg" width="96" alt="ไอคอน FPS Unlocker" />
+<h1 align="center">FPS Unlocker</h1>
 
-# FPS Unlocker
+<p align="center">เครื่องมือปรับไฟล์ตั้งค่าเกมและตรวจ FPS บน Android</p>
 
-**ปรับเฟรมเรตของเกมบน Android 11 ขึ้นไป โดยไม่ต้อง root**
+<p align="center">
+  <img alt="Android tool" src="https://img.shields.io/badge/Android%20tool-6d28d9?style=flat-square" /> <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-6d28d9?style=flat-square" /> <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-6d28d9?style=flat-square" /> <img alt="Shizuku" src="https://img.shields.io/badge/Shizuku-6d28d9?style=flat-square" />
+</p>
 
-แอปจะหาไฟล์ตั้งค่าของเกม แก้ค่า FPS อย่างปลอดภัยพร้อมสำรองไฟล์เดิมให้อัตโนมัติ และมีตัววัด FPS ลอยบนจอไว้ตรวจว่าผลเปลี่ยนจริงหรือไม่
-
-[![Build APK](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml/badge.svg)](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml)
-![Android 11+](https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
-[English](README.md) · **ภาษาไทย**
-
-</div>
-
----
+<p align="center"><a href="README.md">ภาพรวมโปรเจกต์</a> · <a href="docs/USER_GUIDE.en.md">English guide</a> · <a href="docs/SIGNING.md">Signing</a></p>
 
 ## ดาวน์โหลด
 
@@ -116,3 +110,7 @@ app/src/main/
 [MIT](LICENSE) © 2026 BunnyBubui
 
 โปรเจกต์นี้ไม่มีส่วนเกี่ยวข้องกับ Shizuku, Google หรือผู้พัฒนาเกมใดๆ ชื่อเกมและเครื่องหมายการค้าเป็นของเจ้าของแต่ละราย
+
+---
+
+<p align="center"><a href="https://github.com/BunnyBubui">BunnyBubui</a> · <a href="https://github.com/BunnyBubui/test">Software Portfolio</a></p>
