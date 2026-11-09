@@ -9,7 +9,6 @@
 Find a game's config file, change its FPS value safely with automatic backups, and check the real result with a floating FPS meter.
 
 [![Build APK](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml/badge.svg)](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml)
-[![Latest release](https://img.shields.io/github/v/release/BunnyBubui/FpsUnlocker?label=download&sort=date)](https://github.com/BunnyBubui/FpsUnlocker/releases/latest)
 ![Android 11+](https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -22,7 +21,7 @@ Find a game's config file, change its FPS value safely with automatic backups, a
 
 ## Download
 
-**[⬇ Download the latest APK](https://github.com/BunnyBubui/FpsUnlocker/releases/latest/download/FpsUnlocker.apk)** (always points to the newest build), or browse all versions on the **[Releases](https://github.com/BunnyBubui/FpsUnlocker/releases)** page. Newer builds install over older ones; you don't need to uninstall first.
+Test APKs are available in [GitHub Actions artifacts](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml). Debug builds use a local test key and may require uninstalling an older debug installation. Distribution releases require a private signing key; see [signing instructions](docs/SIGNING.md).
 
 The app is available in **English** and **Thai** and follows your phone's language.
 
@@ -88,7 +87,7 @@ To build locally: install Android Studio (JDK 17), open this folder, then run:
 # app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Builds are signed with the committed debug key `app/debug.keystore` (password `android`), so updates install over each other. **Don't use this key for a store release.** Create your own upload key and keep it secret.
+Debug builds use the Android-generated local debug key. Release signing uses private environment settings and never a key committed to this repository. See [signing instructions](docs/SIGNING.md) before distributing an APK.
 
 ## Project structure
 
@@ -118,3 +117,7 @@ Bug reports and pull requests are welcome. When you report a problem with a game
 [MIT](LICENSE) © 2026 BunnyBubui
 
 This project isn't affiliated with Shizuku, Google, or any game publisher. Game names and trademarks belong to their owners.
+
+## Portfolio review
+
+See [portfolio notes](docs/PORTFOLIO.md) for scope, attribution and local configuration.

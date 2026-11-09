@@ -9,7 +9,6 @@
 แอปจะหาไฟล์ตั้งค่าของเกม แก้ค่า FPS อย่างปลอดภัยพร้อมสำรองไฟล์เดิมให้อัตโนมัติ และมีตัววัด FPS ลอยบนจอไว้ตรวจว่าผลเปลี่ยนจริงหรือไม่
 
 [![Build APK](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml/badge.svg)](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml)
-[![Latest release](https://img.shields.io/github/v/release/BunnyBubui/FpsUnlocker?label=download&sort=date)](https://github.com/BunnyBubui/FpsUnlocker/releases/latest)
 ![Android 11+](https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -21,7 +20,7 @@
 
 ## ดาวน์โหลด
 
-**[⬇ ดาวน์โหลด APK ตัวล่าสุด](https://github.com/BunnyBubui/FpsUnlocker/releases/latest/download/FpsUnlocker.apk)** (ลิงก์นี้ชี้ไปที่ build ใหม่ที่สุดเสมอ) หรือดูทุกเวอร์ชันได้ที่หน้า **[Releases](https://github.com/BunnyBubui/FpsUnlocker/releases)** เวอร์ชันใหม่ติดตั้งทับเวอร์ชันเก่าได้ ไม่ต้องถอนก่อน
+ดาวน์โหลด APK สำหรับทดสอบได้จาก [Actions artifacts](https://github.com/BunnyBubui/FpsUnlocker/actions/workflows/build-apk.yml) รุ่น debug ใช้คีย์ทดสอบของแต่ละเครื่อง จึงอาจต้องถอนรุ่น debug เดิมก่อนติดตั้ง รุ่นเผยแพร่ต้องใช้ signing key ส่วนตัวตาม [คู่มือลงนาม](docs/SIGNING.md)
 
 แอปมีทั้ง**ภาษาอังกฤษ**และ**ภาษาไทย** และจะแสดงตามภาษาที่ตั้งไว้ในเครื่อง
 
@@ -87,7 +86,7 @@ Compose UI ──► ViewModel ──► FileAccess ──► Shizuku UserServic
 # ไฟล์อยู่ที่ app/build/outputs/apk/debug/app-debug.apk
 ```
 
-ทุก build เซ็นด้วยกุญแจ debug `app/debug.keystore` (รหัสผ่าน `android`) ที่เก็บไว้ใน repo เวอร์ชันใหม่จึงติดตั้งทับเวอร์ชันเก่าได้ **ห้ามใช้กุญแจนี้ลง Play Store** ให้สร้างกุญแจสำหรับอัปโหลดของตัวเองและเก็บเป็นความลับ
+รุ่น debug ใช้คีย์ที่ Android สร้างในเครื่อง ส่วนรุ่นเผยแพร่ใช้คีย์ส่วนตัวผ่าน environment variables โดยไม่เก็บคีย์ใน Git ดู [คู่มือลงนาม](docs/SIGNING.md) ก่อนแจกจ่าย APK
 
 ## โครงสร้างโปรเจกต์
 

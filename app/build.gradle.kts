@@ -16,22 +16,21 @@ android {
         versionName = "3.1"
     }
 
-    // กุญแจเซ็นแบบ debug ที่เก็บไว้ใน repo (รหัสมาตรฐาน "android")
-    // ถ้าไม่ล็อกไว้ GitHub Actions จะสร้างกุญแจใหม่ทุกครั้ง แล้ว APK ใหม่จะติดตั้งทับตัวเก่าไม่ได้
+    val releaseKeystore = providers.environmentVariable("FPS_RELEASE_KEYSTORE").orNull
     signingConfigs {
-        getByName("debug") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        if (releaseKeystore != null) {
+            create("distribution") {
+                storeFile = file(releaseKeystore)
+                storePassword = providers.environmentVariable("FPS_RELEASE_STORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("FPS_RELEASE_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("FPS_RELEASE_KEY_PASSWORD").get()
+            }
         }
     }
-
     buildTypes {
         release {
-            isMinifyEnabled = false   // ต้องปิดไว้ ไม่งั้นคลาส FileService ของ Shizuku อาจถูกตัดทิ้ง
-            // เซ็นด้วย debug key เพื่อให้ติดตั้ง release APK ทดสอบได้ทันที (ห้ามใช้แบบนี้ถ้าจะเผยแพร่)
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("distribution")
         }
     }
 

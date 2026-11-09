@@ -14,7 +14,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -43,28 +43,4 @@ jobs:
           name: FpsUnlocker-apk
           path: app/build/outputs/apk/debug/*.apk
 
-      # ทำ Release เพื่อให้ดาวน์โหลด APK บนมือถือได้ตรงๆ ไม่ต้องแตก zip
-      - name: Publish APK as release
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
-          TAG="v${VERSION}-build${{ github.run_number }}"
-          cp app/build/outputs/apk/debug/app-debug.apk FpsUnlocker.apk
-          git log -1 --pretty=%B > commit.txt
-          {
-            echo "## FPS Unlocker v${VERSION} (build ${{ github.run_number }})"
-            echo
-            echo "**Install / ติดตั้ง:** download \`FpsUnlocker.apk\` below and open it. It installs over older builds. / ดาวน์โหลด \`FpsUnlocker.apk\` ด้านล่างแล้วเปิดติดตั้ง ติดตั้งทับเวอร์ชันเก่าได้"
-            echo
-            echo "Requires Android 11+ and [Shizuku](https://shizuku.rikka.app/). / ต้องใช้ Android 11 ขึ้นไปและแอป Shizuku"
-            echo
-            echo "### Changes / สิ่งที่เปลี่ยน"
-            echo
-            sed '/^Co-Authored-By/d;/^Claude-Session/d' commit.txt
-          } > notes.md
-          gh release create "$TAG" FpsUnlocker.apk \
-            --title "FPS Unlocker v${VERSION} (build ${{ github.run_number }})" \
-            --notes-file notes.md \
-            --latest
+      # Debug artifacts are for testing. Distribution builds require a private signing key.
